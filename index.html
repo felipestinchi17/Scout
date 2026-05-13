@@ -1283,6 +1283,102 @@ footer {
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+
+/* ━━━ MOBILE RESPONSIVE ━━━ */
+@media (max-width: 768px) {
+
+  /* Dashboard body - stack vertically on mobile */
+  .dash-body {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* News column full width */
+  .news-col {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  /* Intel column full width */
+  .intel-col {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    min-height: 400px;
+  }
+
+  /* Chat column full width */
+  .chat-col {
+    min-height: 350px;
+  }
+
+  /* Cards grid single column */
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sport bar scrollable */
+  .sport-bar {
+    padding: 0 4px;
+  }
+  .sport-btn {
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  /* Intel tabs scrollable */
+  .intel-bar {
+    padding: 0 4px;
+  }
+  .itab-btn {
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  /* Dash nav simplified */
+  .dash-nav {
+    padding: 0 12px;
+  }
+  .dash-clock { display: none; }
+
+  /* Schedule strip smaller */
+  .sched-game {
+    padding: 0 12px;
+    gap: 6px;
+  }
+  .sched-teams { font-size: 12px; }
+
+  /* Intel body padding */
+  .intel-body {
+    padding: 12px;
+  }
+
+  /* Feed items */
+  .feed { max-height: 260px; }
+
+  /* Landing page mobile */
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 40px 20px;
+    gap: 32px;
+  }
+  .hero h1 { font-size: 34px; }
+  .hero-right { display: none; }
+  .features-grid { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .explainer-steps { flex-direction: column; }
+  .step-arrow { transform: rotate(90deg); }
+  .nav { padding: 0 16px; }
+  .nav-links .nav-link { display: none; }
+  .sports-section, .features-section, .pricing-section, .explainer-section {
+    padding: 48px 20px;
+  }
+  footer { padding: 24px 20px; flex-direction: column; }
+  .footer-disc { text-align: left; }
+}
+
 </style>
 <script>
 // Run immediately before page renders to prevent flash
@@ -2393,6 +2489,11 @@ const DATA={
 
 // --- STATE ---
 let sport='nfl', itab='injuries', league='epl', filter='all';
+// Render token - increments every time user switches tab/sport
+// Each async operation captures the token at start and checks at end
+let renderToken = 0;
+function getRenderToken() { return ++renderToken; }
+function isTokenValid(token) { return token === renderToken; }
 let chatHistory=[], chatBusy=false, inited=false;
 
 // --- SPORT TABS ---
@@ -2405,6 +2506,7 @@ function buildSportBar(){
 
 function setSport(s,el){
   sport=s; itab='injuries'; filter='all'; league='epl';
+  getRenderToken(); // invalidate any pending renders
   document.querySelectorAll('.sp-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderAll(s);
@@ -2462,10 +2564,10 @@ function renderIntelTabs(){
 
 function setItab(id,el){
   itab=id;
+  getRenderToken(); // invalidate any pending renders
   document.querySelectorAll('.ib-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderCards();
-  // Fetch fresh ESPN/odds data for this tab if not cached
   const cacheKey = sport + '-' + itab + '-' + league;
   if(!isCacheValid(cacheKey)) fetchAndMerge();
 }
@@ -2743,12 +2845,13 @@ async function startAIAnalysis(sportName, tabName, leagueName) {
 
   // Mark as loading and run in background
   aiLoadingTabs.add(key);
+  const myToken = getRenderToken(); // get fresh token for this analysis
   const cards = await generateAICards(sportName, tabName, leagueName);
   aiLoadingTabs.delete(key);
 
   if(!cards || !cards.length) {
-    // If user is still on this tab, show error
-    if(sport === sportName && itab === tabName) {
+    // Only show error if token still valid
+    if(sport === sportName && itab === tabName && isTokenValid(myToken)) {
       document.getElementById('intelBody').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
         <div style="font-size:28px;opacity:0.15">--</div>
         <div>Could not generate analysis. Check your Anthropic credits.</div>
@@ -2758,23 +2861,24 @@ async function startAIAnalysis(sportName, tabName, leagueName) {
     return;
   }
 
-  // Cards are ready - if user is back on this tab, show them
-  // If not, they're cached so will show instantly when they return
+  // Render with token check
   if(sport === sportName && itab === tabName) {
-    renderAICardList(cards, sportName, tabName, leagueName);
+    renderAICardList(cards, sportName, tabName, leagueName, myToken);
   }
 }
 
-function renderAICardList(cards, sportName, tabName, leagueName) {
-  // Guard: only render if still on same sport/tab
+function renderAICardList(cards, sportName, tabName, leagueName, token) {
+  // Guard: only render if still on same sport/tab AND token is still valid
   if(sport !== sportName || itab !== tabName) return;
+  if(token !== undefined && !isTokenValid(token)) return;
 
   const body = document.getElementById('intelBody');
   const ln = sportName === 'soccer' ? ` -- ${LEAGUES.find(l => l.id === leagueName)?.label || ''}` : '';
 
   if(!cards || !cards.length) {
-
-  // Render the AI-generated cards using the same card renderer
+    body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:11px">No data available</div>';
+    return;
+  }
   const VC = {green:'v-green',red:'v-red',amber:'v-amber'};
   const SC = {green:'dot-green color-green',red:'dot-red color-red',amber:'dot-amber color-amber'};
   const CF = {green:'bar-green',red:'bar-red',amber:'bar-amber'};
@@ -2807,8 +2911,6 @@ function renderAICardList(cards, sportName, tabName, leagueName) {
           <div class="i-verdict ${VC[c.verdict]||'v-amber'}">${c.vt}</div>
         </div>`).join('')}
     </div>`;
-}
-
 }
 // --- CHAT ---
 const CHAT_SYS=`You are Scout, an elite sports intelligence AI. You know every sport in the world -- American football, basketball, baseball, hockey, soccer, tennis, golf, MMA, boxing, rugby, cricket, Formula 1, NASCAR, cycling, athletics, swimming, esports, volleyball, handball, snooker, darts, and any other sport a user asks about. You have deep knowledge of teams, players, injuries, betting lines, historical trends, cover rates, ATS records, and statistics across all sports globally. Be direct, sharp and concise. Answer in 2-4 sentences max with real data and opinions. Never say you cannot help with a sport -- you cover everything.`;
