@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCOUT — Sports Intelligence v3</title>
+<meta name="description" content="Real-time sports intelligence for serious bettors. Injuries, sharp money, line movement and historical trends.">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700;900&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #08090c;
+  --dark: #0e1014;
+  --card: #13151a;
+  --card2: #191c23;
+  --line: #1f2229;
+  --line2: #272b35;
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,0.08);
+  --green-glow: rgba(16,185,129,0.15);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.08);
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.08);
+  --blue: #3b82f6;
+  --blue-dim: rgba(59,130,246,0.08);
+  --text: #f1f2f4;
+  --text2: #b0b7c3;
+  --text3: #8a909e;
+  --serif: 'Playfair Display', Georgia, serif;
+  --sans: 'Outfit', sans-serif;
+  --mono: 'Space Mono', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--black);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grain overlay for texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   LANDING PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+#landingPage { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* NAV */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 48px;
+  height: 68px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: rgba(8,9,12,0.92);
+  backdrop-filter: blur(16px);
+  z-index: 100;
+}
+
+.nav-logo {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-logo-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s ease infinite;
+}
+
+@keyframes pulse-dot {
+  0%,100% { opacity:1; transform:scale(1); box-shadow: 0 0 0 0 var(--green-glow); }
+  50% { opacity:0.8; transform:scale(1.1); box-shadow: 0 0 0 6px transparent; }
+}
+
+.nav-links { display:flex; align-items:center; gap:32px; }
+.nav-link { font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; transition:color 0.2s; letter-spacing:0.02em; }
+.nav-link:hover { color:var(--text); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 6px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary {
+  background: var(--green);
+  color: #000;
+}
+.btn-primary:hover { background: #0ea472; transform: translateY(-1px); box-shadow: 0 8px 24px var(--green-glow); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid var(--line2);
+}
+.btn-ghost:hover { border-color: var(--text3); color: var(--text); }
+
+/* HERO */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-height: calc(100vh - 68px);
+  position: relative;
+}
+
+.hero-left {
+  padding: 80px 48px 80px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid var(--line);
+  position: relative;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--green);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  animation: fadeUp 0.7s ease both;
+}
+
+.hero-eyebrow-line { width: 32px; height: 1px; background: var(--green); }
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(48px, 5vw, 72px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 24px;
+  animation: fadeUp 0.7s ease 0.1s both;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--green);
+}
+
+.hero-desc {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--text2);
+  max-width: 460px;
+  margin-bottom: 40px;
+  font-weight: 300;
+  animation: fadeUp 0.7s ease 0.2s both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 56px;
+  animation: fadeUp 0.7s ease 0.3s both;
+}
+
+.hero-actions .btn { padding: 12px 24px; font-size: 14px; }
+
+.hero-metrics {
+  display: flex;
+  gap: 36px;
+  padding-top: 36px;
+  border-top: 1px solid var(--line);
+  animation: fadeUp 0.7s ease 0.4s both;
+}
+
+.metric-num {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.metric-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  text-transform: uppercase;
+}
+
+/* HERO RIGHT - live preview cards */
+.hero-right {
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+  background: var(--dark);
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-right::before {
+  content: '';
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(16,185,129,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.preview-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.preview-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: border-color 0.2s;
+}
+
+.preview-card:hover { border-color: var(--line2); }
+
+.pc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pc-team {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pc-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badge-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+.badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+.badge-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+
+.pc-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; font-size: 12px; line-height: 1.5; color: var(--text2); }
+.pc-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+  background: var(--card2);
+  border: 1px solid var(--line2);
+  border-radius: 3px;
+  padding: 2px 5px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.pc-trend {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 16px;
+}
+
+.pc-stat-num {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pc-stat-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.pc-bar-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.pc-bar { height: 4px; background: var(--line2); border-radius: 2px; overflow: hidden; }
+.pc-bar-fill { height: 100%; border-radius: 2px; }
+.fill-green { background: var(--green); }
+.fill-red { background: var(--red); }
+.fill-amber { background: var(--amber); }
+.pc-bar-label { font-family: var(--mono); font-size: 9px; color: var(--text3); display: flex; justify-content: space-between; }
+
+.pc-verdict {
+  margin-top: 10px;
+  padding: 8px 11px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.verdict-green { background: var(--green-dim); border: 1px solid rgba(16,185,129,0.15); color: var(--green); }
+.verdict-red { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.15); color: var(--red); }
+.verdict-amber { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.15); color: var(--amber); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+/* FEATURES SECTION */
+.features-section {
+  padding: 100px 48px;
+  border-top: 1px solid var(--line);
+}
+
+.section-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--green);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--green); }
+
+.section-title {
+  font-family: var(--serif);
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  max-width: 600px;
+}
+
+.section-title em { font-style: italic; color: var(--green); }
+
+.section-sub {
+  font-size: 15px;
+  color: var(--text2);
+  font-weight: 300;
+  margin-bottom: 64px;
+  max-width: 500px;
+  line-height: 1.7;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.feature-item {
+  padding: 28px 24px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transition: background 0.2s;
+  position: relative;
+}
+
+.feature-item:hover { background: var(--card); }
+.feature-item:nth-child(4n) { border-right: none; }
+.feature-item:nth-last-child(-n+4) { border-bottom: none; }
+
+.fi-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--green);
+  background: var(--green-dim);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-bottom: 16px;
+  display: block;
+  width: fit-content;
+}
+
+.fi-title {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.fi-desc {
+  font-size: 12.5px;
+  color: var(--text2);
+  line-height: 1.65;
+  font-weight: 300;
+}
+
+/* TREND SECTION */
+.trends-section {
+  padding: 100px 48px;
+  background: var(--dark);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.trends-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 64px;
+}
+
+.trend-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 24px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.trend-card:hover { border-color: var(--line2); transform: translateY(-2px); }
+
+.tc-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.tc-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.tc-big {
+  font-family: var(--serif);
+  font-size: 44px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.tc-big.positive { color: var(--green); }
+.tc-big.negative { color: var(--red); }
+.tc-big.neutral { color: var(--amber); }
+
+.tc-sub {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  font-weight: 300;
+}
+
+.tc-bar { height: 5px; background: var(--line2); border-radius: 3px; overflow: hidden; }
+.tc-bar-fill { height: 100%; border-radius: 3px; }
+
+.tc-sample {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  margin-top: 10px;
+  letter-spacing: 0.05em;
+}
+
+/* SPORTS SECTION */
+.sports-section {
+  padding: 100px 48px;
+  border-top: 1px solid var(--line);
+}
+
+.sports-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 48px;
+}
+
+.sport-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  transition: all 0.2s;
+  cursor: default;
+}
+
+.sport-chip:hover { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+/* PRICING */
+.pricing-section {
+  padding: 100px 48px;
+  background: var(--dark);
+  border-top: 1px solid var(--line);
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 64px;
+  max-width: 900px;
+}
+
+.pricing-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.pricing-card:hover { transform: translateY(-4px); }
+.pricing-card.featured { border-color: var(--green); }
+
+.pc-popular {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--green);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 999px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.pricing-tier {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.pricing-price {
+  font-family: var(--serif);
+  font-size: 44px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.pricing-price sup { font-size: 20px; margin-top: 8px; }
+.pricing-price sub { font-size: 14px; align-self: flex-end; margin-bottom: 4px; color: var(--text3); font-family: var(--sans); font-weight: 300; }
+
+.pricing-period {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.06em;
+  margin-bottom: 28px;
+}
+
+.pricing-divider { height: 1px; background: var(--line); margin-bottom: 24px; }
+
+.pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+
+.pricing-features li {
+  font-size: 13px;
+  color: var(--text2);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-weight: 400;
+}
+
+.pf-check { color: var(--green); flex-shrink: 0; margin-top: 2px; display:flex; align-items:center; }
+.pf-x { color: var(--text3); flex-shrink: 0; margin-top: 2px; display:flex; align-items:center; }
+.pf-check svg, .pf-x svg { display:block; }
+.pricing-features li.dimmed { color: var(--text3); }
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 28px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-logo { font-family: var(--serif); font-size: 18px; font-weight: 700; color: var(--text); }
+.footer-copy { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; }
+.footer-disc { font-size: 11px; color: var(--text3); max-width: 360px; text-align: right; line-height: 1.6; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DASHBOARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+#dashboardPage {
+  display: none;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* TICKER */
+.ticker-bar {
+  height: 28px;
+  background: var(--dark);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ticker-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  background: var(--red-dim);
+  border: 1px solid rgba(239,68,68,0.2);
+  padding: 2px 8px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ticker-dot { width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1s infinite; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.ticker-scroll { flex:1;overflow:hidden; }
+.ticker-inner { display:flex;gap:48px;animation:scroll 35s linear infinite;white-space:nowrap; }
+.ticker-inner:hover{animation-play-state:paused;}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-item { font-size:11px;color:var(--text2);display:inline-flex;align-items:center;gap:8px;flex-shrink:0; }
+.ticker-sport { font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.08em; }
+.ticker-sep { color:var(--line2); }
+
+/* DASH HEADER */
+.dash-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  height: 48px;
+  border-bottom: 1px solid var(--line);
+  background: var(--dark);
+  flex-shrink: 0;
+}
+
+.dash-logo {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-logo-dot { width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease infinite; }
+
+.dash-right { display:flex;align-items:center;gap:10px; }
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 0.06em;
+}
+
+.status-pill-dot { width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease infinite; }
+
+.dash-clock { font-family:var(--mono);font-size:11px;color:var(--text3); }
+
+.dash-back {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text3);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all 0.15s;
+}
+.dash-back:hover { border-color: var(--line2); color: var(--text2); }
+
+/* SCHEDULE */
+.schedule {
+  height: 34px;
+  background: var(--dark);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  gap: 0;
+}
+.schedule::-webkit-scrollbar{display:none;}
+
+.sched-game {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 100%;
+  border-right: 1px solid var(--line);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sched-game:hover { background: var(--card); }
+.sched-teams { font-size: 11px; font-weight: 500; color: var(--text); }
+.sched-time { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+.sched-live { font-family: var(--mono); font-size: 8px; background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); border-radius: 3px; padding: 1px 5px; letter-spacing: 0.06em; }
+.sched-alert { font-size: 10px; }
+
+/* SPORT TABS */
+.sport-bar {
+  display: flex;
+  background: var(--dark);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  padding: 0 12px;
+  overflow-x: auto;
+}
+.sport-bar::-webkit-scrollbar{display:none;}
+
+.sp-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 40px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #949aa6;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sp-tab:hover { color: var(--text); }
+.sp-tab.active { color: var(--green); border-bottom-color: var(--green); }
+.sp-count {
+  font-size: 8px;
+  background: rgba(20,184,166,0.1);
+  color: #2dd4bf;
+  border: 1px solid rgba(20,184,166,0.25);
+  border-radius: 999px;
+  padding: 1px 5px;
+}
+
+/* MAIN LAYOUT */
+.dash-body { display:flex; flex:1; overflow:hidden; }
+
+/* LEFT - NEWS */
+.news-col {
+  width: 260px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: var(--dark);
+}
+
+.col-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.col-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text3);
+  text-transform: uppercase;
+}
+
+.filters {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  font-family: var(--mono);
+  font-size: 8px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--line2);
+  color: var(--text3);
+  background: transparent;
+  letter-spacing: 0.06em;
+  transition: all 0.12s;
+}
+.filter-btn:hover,.filter-btn.on { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+.feed { flex:1; overflow-y:auto; }
+.feed::-webkit-scrollbar{width:2px;}
+.feed::-webkit-scrollbar-thumb{background:var(--line2);}
+
+.feed-item {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+.feed-item:hover { background: var(--card); }
+.feed-item.urgent::before { content:''; position:absolute; left:0;top:0;bottom:0;width:2px;background:var(--red); }
+.feed-item.warn::before { content:''; position:absolute; left:0;top:0;bottom:0;width:2px;background:var(--amber); }
+.feed-item.ok::before { content:''; position:absolute; left:0;top:0;bottom:0;width:2px;background:var(--green); }
+
+.fi-meta { display:flex;align-items:center;gap:6px;margin-bottom:4px; }
+.fi-tag {
+  font-family: var(--mono);
+  font-size: 8px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tag-inj{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.15);}
+.tag-line{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(59,130,246,0.15);}
+.tag-sharp{background:rgba(139,92,246,0.1);color:#8b5cf6;border:1px solid rgba(139,92,246,0.2);}
+.tag-weather{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.15);}
+.tag-lineup{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,0.15);}
+.tag-revenge{background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.2);}
+.tag-fatigue{background:rgba(167,139,250,0.1);color:#a78bfa;border:1px solid rgba(167,139,250,0.2);}
+.tag-susp{background:rgba(251,191,36,0.1);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);}
+.tag-rot{background:rgba(34,211,238,0.1);color:#22d3ee;border:1px solid rgba(34,211,238,0.2);}
+.tag-cond{background:rgba(74,222,128,0.08);color:#4ade80;border:1px solid rgba(74,222,128,0.15);}
+
+.fi-time { font-family:var(--mono);font-size:9px;color:var(--text3);margin-left:auto; }
+.fi-headline { font-size:12px;font-weight:600;line-height:1.4;color:var(--text);margin-bottom:3px; }
+.fi-body { font-size:11px;color:var(--text3);line-height:1.4;font-weight:300; }
+
+/* CENTER - INTEL */
+.intel-col { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+.intel-bar {
+  display: flex;
+  gap: 1px;
+  padding: 6px 14px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--dark);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.intel-bar::-webkit-scrollbar{display:none;}
+
+.ib-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text3);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  border-radius: 5px 5px 0 0;
+}
+.ib-tab:hover { color: var(--text2); background: var(--card); }
+.ib-tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-dim); }
+
+.league-bar {
+  display: flex;
+  gap: 6px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.league-bar::-webkit-scrollbar{display:none;}
+
+.lb-btn {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--line2);
+  color: var(--text3);
+  background: transparent;
+  letter-spacing: 0.06em;
+  transition: all 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.lb-btn:hover,.lb-btn.active { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+.intel-body { flex:1; overflow-y:auto; padding:16px; }
+.intel-body::-webkit-scrollbar{width:2px;}
+.intel-body::-webkit-scrollbar-thumb{background:var(--line2);}
+
+.intel-section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.intel-section-label::after { content:''; flex:1; height:1px; background:var(--line); }
+
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+
+/* INTEL CARD */
+.i-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.i-card:hover { border-color: var(--line2); transform: translateY(-1px); }
+
+.i-card-top {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.i-team {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.i-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+.i-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  background: none !important;
+  border: none !important;
+}
+.i-dot { width:5px;height:5px;border-radius:50%; }
+.dot-green{background:var(--green);}
+.dot-red{background:var(--red);}
+.dot-amber{background:var(--amber);}
+.color-green{color:var(--green);}
+.color-red{color:var(--red);}
+.color-amber{color:var(--amber);}
+
+.i-conf {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+  background: none !important;
+}
+.i-conf-bar { width:44px;height:2px;background:var(--line2);border-radius:1px;overflow:hidden; }
+.i-conf-fill { height:100%;border-radius:1px; }
+
+.i-card-body { padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+.i-row { display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5; }
+.i-icon { display:flex; align-items:flex-start; flex-shrink:0; min-width:28px; margin-top:0; }
+
+/* Monogram badge — replaces all emojis */
+.mono-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text3);
+  background: var(--card2);
+  border: 1px solid var(--line2);
+  border-radius: 3px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  min-width: 26px;
+  text-align: center;
+  line-height: 1;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text3);
+  background: var(--card2);
+  border: 1px solid var(--line2);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-right: 5px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+.ib-tab.active .tab-badge { color:var(--green); border-color:rgba(16,185,129,0.3); background:var(--green-dim); }
+.ib-tab:hover .tab-badge { color:var(--text2); }
+
+.tb-icon {
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+  background: var(--card);
+  border: 1px solid var(--line2);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.fi-tag { display:inline-flex; align-items:center; gap:4px; }
+.i-row-text { flex:1;color:var(--text2);font-weight:300; }
+.i-row-label { font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2px; }
+
+/* TREND BOX */
+.trend-box {
+  margin: 0 14px 2px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px 12px;
+}
+
+.tb-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tb-label svg { color: var(--text3); flex-shrink:0; }
+
+.tb-stats { display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap; }
+.tb-stat-num {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+.tb-stat-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text3);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.tb-bar-row { display:flex;align-items:center;gap:7px;margin-bottom:5px; }
+.tb-bar-lbl { font-family:var(--mono);font-size:8px;color:var(--text3);width:76px;flex-shrink:0;letter-spacing:0.04em; }
+.tb-bar-outer { flex:1;height:4px;background:var(--line2);border-radius:2px;overflow:hidden; }
+.tb-bar-inner { height:100%;border-radius:2px; }
+.bar-green{background:var(--green);}
+.bar-red{background:var(--red);}
+.bar-amber{background:var(--amber);}
+.tb-pct { font-family:var(--mono);font-size:8px;width:28px;text-align:right;flex-shrink:0; }
+
+.tb-sample {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text3);
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  letter-spacing: 0.04em;
+}
+
+.i-verdict {
+  margin: 4px 14px 14px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.v-green{background:var(--green-dim);border:1px solid rgba(16,185,129,0.15);color:var(--green);}
+.v-red{background:var(--red-dim);border:1px solid rgba(239,68,68,0.15);color:var(--red);}
+.v-amber{background:var(--amber-dim);border:1px solid rgba(245,158,11,0.15);color:var(--amber);}
+
+/* CHAT */
+.chat-col {
+  width: 260px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: var(--dark);
+}
+
+.chat-msgs { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+.chat-msgs::-webkit-scrollbar{width:2px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:var(--line2);}
+
+.msg {
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 9px 12px;
+  border-radius: 10px;
+  max-width: 220px;
+  animation: fadeUp 0.2s ease;
+  font-weight: 300;
+}
+
+.msg.bot {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 3px;
+  align-self: flex-start;
+  color: var(--text2);
+}
+
+.msg.user {
+  background: var(--green-dim);
+  border: 1px solid rgba(16,185,129,0.15);
+  border-bottom-right-radius: 3px;
+  align-self: flex-end;
+  color: var(--green);
+}
+
+.chat-input-row {
+  padding: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 7px;
+}
+
+.chat-field {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 300;
+  padding: 8px 11px;
+  outline: none;
+  transition: border-color 0.15s;
+  resize: none;
+  height: 34px;
+}
+.chat-field:focus { border-color: var(--green); }
+.chat-field::placeholder { color: var(--text3); }
+
+.chat-submit {
+  width: 34px; height: 34px;
+  background: var(--green);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.chat-submit:hover { background: #0ea472; }
+.chat-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+.chat-submit svg { width: 13px; height: 13px; fill: #000; }
+
+.thinking {
+  display: flex;
+  gap: 4px;
+  padding: 9px 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  border-bottom-left-radius: 3px;
+  align-self: flex-start;
+}
+.thinking span { width:4px;height:4px;background:var(--green);border-radius:50%;animation:think 1s infinite; }
+.thinking span:nth-child(2){animation-delay:.15s}
+.thinking span:nth-child(3){animation-delay:.3s}
+@keyframes think{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- ━━━ LANDING ━━━ -->
+<div id="landingPage">
+  <nav class="nav">
+    <div class="nav-logo">
+      <div class="nav-logo-dot"></div>
+      Scout
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" onclick="goTo('features')">Features</a>
+      <a class="nav-link" onclick="goTo('trends')">Trend Data</a>
+      <a class="nav-link" onclick="goTo('sports')">Coverage</a>
+      <a class="nav-link" onclick="goTo('pricing')">Pricing</a>
+      <button class="btn btn-ghost" onclick="openDash()">Sign in</button>
+      <button class="btn btn-primary" onclick="openDash()">Get started free</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow"><div class="hero-eyebrow-line"></div>Sports Intelligence Platform</div>
+      <h1>The edge serious bettors <em>actually</em> use.</h1>
+      <p class="hero-desc">Real-time injury reports, line movement, sharp money signals, and 3 years of historical trend data — surfaced instantly, so you never miss what moves the market.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="openDash()">Open dashboard →</button>
+        <button class="btn btn-ghost" onclick="goTo('features')">See what's inside</button>
+      </div>
+      <div class="hero-metrics">
+        <div><div class="metric-num">11</div><div class="metric-label">Sports covered</div></div>
+        <div><div class="metric-num">10</div><div class="metric-label">Soccer leagues</div></div>
+        <div><div class="metric-num">3 yrs</div><div class="metric-label">Trend data</div></div>
+        <div><div class="metric-num">24/7</div><div class="metric-label">Live alerts</div></div>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="preview-label">Live intel preview</div>
+      <div class="preview-card">
+        <div class="pc-header">
+          <div class="pc-team">Warriors — GSW</div>
+          <div class="pc-badge badge-red">OUT</div>
+        </div>
+        <div class="pc-row"><div class="pc-icon-badge">INJ</div><div>Steph Curry — hamstring, officially ruled out. Klay also doubtful.</div></div>
+        <div class="pc-row"><div class="pc-icon-badge">LNE</div><div>Line moved 9 full points on the news. Market fully repriced.</div></div>
+        <div class="pc-trend">
+          <div>
+            <div class="pc-stat-num" style="color:var(--red)">34%</div>
+            <div class="pc-stat-label">WIN RATE W/O STEPH</div>
+          </div>
+          <div class="pc-bar-wrap">
+            <div class="pc-bar-label"><span>With Curry</span><span>72%</span></div>
+            <div class="pc-bar"><div class="pc-bar-fill fill-green" style="width:72%"></div></div>
+            <div class="pc-bar-label"><span>Without Curry</span><span>34%</span></div>
+            <div class="pc-bar"><div class="pc-bar-fill fill-red" style="width:34%"></div></div>
+          </div>
+        </div>
+        <div class="pc-verdict verdict-red">Fade the Warriors. They cover at just 34% without Steph — one of the worst star-out records in the league.</div>
+      </div>
+
+      <div class="preview-card">
+        <div class="pc-header">
+          <div class="pc-team">NFL Wind Alert</div>
+          <div class="pc-badge badge-amber">WEATHER</div>
+        </div>
+        <div class="pc-row"><div class="pc-icon-badge">WX</div><div>Bears game — 22mph sustained winds, gusts to 34mph, 28°F at kickoff.</div></div>
+        <div class="pc-row"><div class="pc-icon-badge">TTL</div><div>Total dropped from 44.5 to 38. Under heavily priced in by the market.</div></div>
+        <div class="pc-trend">
+          <div>
+            <div class="pc-stat-num" style="color:var(--green)">71%</div>
+            <div class="pc-stat-label">UNDER RATE 20MPH+</div>
+          </div>
+          <div class="pc-bar-wrap">
+            <div class="pc-bar-label"><span>Under rate</span><span>71%</span></div>
+            <div class="pc-bar"><div class="pc-bar-fill fill-green" style="width:71%"></div></div>
+            <div class="pc-bar-label"><span>Avg total pts scored</span><span>23.1</span></div>
+            <div class="pc-bar"><div class="pc-bar-fill fill-amber" style="width:40%"></div></div>
+          </div>
+        </div>
+        <div class="pc-verdict verdict-amber">NFL games with 20mph+ winds go under 71% of the time over 5 seasons. Lean under if any value remains.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="features-section" id="features">
+    <div class="section-eyebrow">What's inside</div>
+    <div class="section-title">Every edge, in one <em>place.</em></div>
+    <div class="section-sub">Scout pulls from injury reports, line movement, sharp money, weather data, and 3 years of historical trends — then tells you what it means.</div>
+    <div class="features-grid">
+      <div class="feature-item"><span class="fi-icon-badge">INJ</span><div class="fi-title">Injury Intelligence</div><div class="fi-desc">Not just who's out — but how the team performs without them, backed by historical cover rates.</div></div>
+      <div class="feature-item"><span class="fi-icon-badge">TRD</span><div class="fi-title">Historical Trends</div><div class="fi-desc">3 years of cover rates, ATS records, and situational stats on every scenario that matters.</div></div>
+      <div class="feature-item"><span class="fi-icon-badge">SHP</span><div class="fi-title">Sharp Money Signals</div><div class="fi-desc">When professional bettors move a line against public sentiment, Scout surfaces it immediately.</div></div>
+      <div class="feature-item"><span class="fi-icon-badge">WX</span><div class="fi-title">Weather Alerts</div><div class="fi-desc">Wind, rain and extreme cold destroy scoring. We flag every game where conditions are a real factor.</div></div>
+      <div class="feature-item"><span class="fi-icon-badge">FAT</span><div class="fi-title">Fatigue Tracker</div><div class="fi-desc">Back-to-backs, altitude travel, short rest — every spot where tired teams underperform.</div></div>
+      <div class="feature-item"><span class="fi-icon-badge">RVG</span><div class="fi-title">Revenge Games</div><div class="fi-desc">Players facing former teams perform differently. Scout tracks the historical numbers automatically.</div></div>
+      <div class="feature-item"><span class="fi-icon-badge">EDG</span><div class="fi-title">Matchup Edges</div><div class="fi-desc">When a key defender goes down, certain players become must-plays. We identify the ripple instantly.</div></div>
+      <div class="feature-item"><span class="fi-icon-badge">AI</span><div class="fi-title">Ask Scout AI</div><div class="fi-desc">Plain English questions, sharp direct answers backed by real data. Available across all sports.</div></div>
+    </div>
+  </div>
+
+  <!-- TRENDS -->
+  <div class="trends-section" id="trends">
+    <div class="section-eyebrow">Historical trend data</div>
+    <div class="section-title">The numbers behind every <em>alert.</em></div>
+    <div class="section-sub">Every Scout alert comes with the historical cover rates and situational stats that tell you what the situation actually means for your bet.</div>
+    <div class="trends-grid">
+      <div class="trend-card">
+        <div class="tc-label">NBA · Fatigue · 3 seasons</div>
+        <div class="tc-title">Back-to-Back Second Night</div>
+        <div class="tc-big negative">39%</div>
+        <div class="tc-sub">B2B teams cover at just 39% on the second night — meaning fading them wins nearly 2 out of 3 times.</div>
+        <div class="tc-bar"><div class="tc-bar-fill bar-red" style="width:39%"></div></div>
+        <div class="tc-sample">n = 312 games · last 3 seasons</div>
+      </div>
+      <div class="trend-card">
+        <div class="tc-label">NFL · Weather · 5 seasons</div>
+        <div class="tc-title">Wind Over 20mph at Kickoff</div>
+        <div class="tc-big positive">71%</div>
+        <div class="tc-sub">Games with 20mph+ winds go under the total 71% of the time — one of the most reliable weather edges in sports betting.</div>
+        <div class="tc-bar"><div class="tc-bar-fill bar-green" style="width:71%"></div></div>
+        <div class="tc-sample">n = 94 games · last 5 seasons</div>
+      </div>
+      <div class="trend-card">
+        <div class="tc-label">All sports · Sharp money</div>
+        <div class="tc-title">Reverse Line Movement 3+ Pts</div>
+        <div class="tc-big positive">64%</div>
+        <div class="tc-sub">When sharp money moves a line 3+ points against the public, that side covers 64% of the time across all major sports.</div>
+        <div class="tc-bar"><div class="tc-bar-fill bar-green" style="width:64%"></div></div>
+        <div class="tc-sample">n = 312 spots · last 3 seasons</div>
+      </div>
+      <div class="trend-card">
+        <div class="tc-label">All sports · Revenge games</div>
+        <div class="tc-title">Player vs Former Team</div>
+        <div class="tc-big neutral">+23%</div>
+        <div class="tc-sub">Players in revenge spots average 23% more production than their season average — and hit their props 61% of the time.</div>
+        <div class="tc-bar"><div class="tc-bar-fill bar-amber" style="width:61%"></div></div>
+        <div class="tc-sample">n = 88 revenge spots tracked</div>
+      </div>
+      <div class="trend-card">
+        <div class="tc-label">MLB · Starting pitchers</div>
+        <div class="tc-title">Day-Of SP Scratch</div>
+        <div class="tc-big positive">58%</div>
+        <div class="tc-sub">When an ace is scratched day-of the game, the opponent wins outright 58% of the time — the single biggest edge in baseball betting.</div>
+        <div class="tc-bar"><div class="tc-bar-fill bar-green" style="width:58%"></div></div>
+        <div class="tc-sample">n = 89 games · last 4 seasons</div>
+      </div>
+      <div class="trend-card">
+        <div class="tc-label">Soccer · Squad rotation</div>
+        <div class="tc-title">B Squad Before European Match</div>
+        <div class="tc-big negative">39%</div>
+        <div class="tc-sub">Top clubs rotating for Champions League win just 39% of domestic matches — one of soccer betting's most consistent edges.</div>
+        <div class="tc-bar"><div class="tc-bar-fill bar-red" style="width:39%"></div></div>
+        <div class="tc-sample">n = 67 games · last 3 seasons</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPORTS -->
+  <div class="sports-section" id="sports">
+    <div class="section-eyebrow">Full coverage</div>
+    <div class="section-title">Every sport. Every <em>league.</em></div>
+    <div class="section-sub">From the NFL to the Brasileirão — Scout covers every major league that serious bettors care about.</div>
+    <div class="sports-grid">
+      <div class="sport-chip">NFL</div><div class="sport-chip">NBA</div>
+      <div class="sport-chip">MLB</div><div class="sport-chip">NHL</div>
+      <div class="sport-chip">NCAA</div><div class="sport-chip">WNBA</div>
+      <div class="sport-chip">Tennis</div><div class="sport-chip">NASCAR</div>
+      <div class="sport-chip">MMA</div><div class="sport-chip">Golf</div>
+      <div class="sport-chip">Premier League</div><div class="sport-chip">La Liga</div>
+      <div class="sport-chip">Bundesliga</div><div class="sport-chip">Serie A</div>
+      <div class="sport-chip">Ligue 1</div><div class="sport-chip">Champions League</div>
+      <div class="sport-chip">MLS</div><div class="sport-chip">Eredivisie</div>
+      <div class="sport-chip">Liga Portugal</div><div class="sport-chip">Brasileirão</div>
+        <div class="sport-chip">Boxing</div>
+        <div class="sport-chip">Formula 1</div>
+    </div>
+  </div>
+
+  <!-- PRICING -->
+  <div class="pricing-section" id="pricing">
+    <div class="section-eyebrow">Pricing</div>
+    <div class="section-title">Start free. Scale when <em>ready.</em></div>
+    <div class="section-sub">No credit card required to get started. Upgrade whenever the edge pays for itself.</div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-tier">Free</div>
+        <div class="pricing-price"><sup>$</sup>0</div>
+        <div class="pricing-period">Forever free</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Browse all sports &amp; leagues</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> See dashboard layout &amp; features</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Limited news headlines</li>
+          <li class="dimmed"><span class="pf-x"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> Full intel cards &amp; data</li>
+          <li class="dimmed"><span class="pf-x"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> Sharp money signals</li>
+          <li class="dimmed"><span class="pf-x"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> Historical trend data</li>
+          <li class="dimmed"><span class="pf-x"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> Phone &amp; text alerts</li>
+          <li class="dimmed"><span class="pf-x"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span> Ask Scout AI</li>
+        </ul>
+        <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openDash()">Get started</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pc-popular">Most popular</div>
+        <div class="pricing-tier">Pro</div>
+        <div class="pricing-price"><sup>$</sup>9<sub>.99/mo</sub></div>
+        <div class="pricing-period">or $79.99/year — save 33%</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> All 11 sports + all leagues</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Full intel cards &amp; news feed</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Sharp money signals</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Historical trend data (3 years)</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Line movement tracker</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Weather, fatigue &amp; revenge alerts</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Real-time phone &amp; text alerts</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Ask Scout AI (unlimited)</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openDash()">Start free trial</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-tier">Sharp</div>
+        <div class="pricing-price"><sup>$</sup>19<sub>.99/mo</sub></div>
+        <div class="pricing-period">or $159.99/year — save 33%</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Everything in Pro</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> 5 years of historical data</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Bet tracker — Scout monitors your bets</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Private Discord community</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Weekly Sharp Report email</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Priority support</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Early access to new features</li>
+        </ul>
+        <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openDash()">Go Sharp</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-logo">Scout</div>
+    <div class="footer-copy">© 2025 Scout Sports Intelligence</div>
+    <div class="footer-disc">For entertainment and research purposes only. Not financial advice. Please gamble responsibly. 21+</div>
+  </footer>
+</div>
+
+<!-- ━━━ DASHBOARD ━━━ -->
+<div id="dashboardPage">
+  <div class="ticker-bar">
+    <div class="ticker-badge"><div class="ticker-dot"></div>BREAKING</div>
+    <div class="ticker-scroll"><div class="ticker-inner" id="tickerInner"></div></div>
+  </div>
+
+  <div class="dash-nav">
+    <div class="dash-logo"><div class="dash-logo-dot"></div>Scout</div>
+    <div class="dash-right">
+      <div class="status-pill"><div class="status-pill-dot"></div>Live</div>
+      <div class="dash-clock" id="clock">--:-- --</div>
+      <button class="dash-back" onclick="showLanding()">← Back</button>
+    </div>
+  </div>
+
+  <div class="schedule" id="schedule"></div>
+  <div class="sport-bar" id="sportBar"></div>
+
+  <div class="dash-body">
+    <div class="news-col">
+      <div class="col-header"><div class="col-title">Breaking Feed</div></div>
+      <div class="filters" id="filters"></div>
+      <div class="feed" id="feed"></div>
+    </div>
+
+    <div class="intel-col">
+      <div class="intel-bar" id="intelBar"></div>
+      <div class="league-bar" id="leagueBar" style="display:none"></div>
+      <div class="intel-body" id="intelBody"></div>
+    </div>
+
+    <div class="chat-col">
+      <div class="col-header"><div class="col-title">Ask Scout</div></div>
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="msg bot">Hey — I'm Scout. Ask me about injuries, lines, sharp money, historical trends, weather, or any matchup across any sport.</div>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-field" id="chatField" placeholder="Ask anything…" rows="1" onkeydown="onChatKey(event)"></textarea>
+        <button class="chat-submit" id="chatBtn" onclick="sendMsg()">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- CONFIG ---
+// Paste your API keys below then save the file
+const CFG = {
+  ANTHROPIC_API_KEY: 'configured',   // console.anthropic.com
+  ODDS_API_KEY:      '207ca3543d7d524a274c93264299a6fb',          // the-odds-api.com
+  WEATHER_API_KEY:   '3fbbd05b2b923a20353e05cd0299f55e',       // openweathermap.org/api
+  NEWS_API_KEY:      'bb2b2f0b4bcd4392a6f50f3527213cee',           // newsapi.org
+  SPORTRADAR_KEY:    'YOUR_SPORTRADAR_KEY',         // developer.sportradar.com
+};
+
+// Toggle each data source on once you have the key
+const USE = {
+  ODDS:        true,   // set true once you have ODDS_API_KEY
+  WEATHER:     true,   // set true once you have WEATHER_API_KEY
+  NEWS:        true,   // set true once you have NEWS_API_KEY
+  SPORTRADAR:  false,   // set true once you have SPORTRADAR_KEY
+  AI_CHAT:     true,   // set true once you have ANTHROPIC_API_KEY
+};
+
+// --- VENUES (for weather lookups) ---
+// lat/lon of home stadiums for each team - used for weather API
+const VENUES = {
+  'KC vs LAC':  {lat:39.0489, lon:-94.4839, name:'Arrowhead Stadium, KC'},
+  'PHI vs DAL': {lat:39.9008, lon:-75.1675, name:'Lincoln Financial Field, PHI'},
+  'GB vs MIN':  {lat:44.5013, lon:-88.0622, name:'Lambeau Field, GB'},
+  'CHI vs DET': {lat:41.8623, lon:-87.6167, name:'Soldier Field, CHI'},
+  'BUF vs NE':  {lat:42.7738, lon:-78.7870, name:'Highmark Stadium, BUF'},
+  'NYG vs WAS': {lat:40.8135, lon:-74.0745, name:'MetLife Stadium, NJ'},
+  'LAR vs SF':  {lat:33.9535, lon:-118.3392, name:'SoFi Stadium, LA'},
+  'SEA vs ARI': {lat:47.5952, lon:-122.3316, name:'Lumen Field, SEA'},
+  'PIT vs CLE': {lat:40.4468, lon:-80.0158, name:'Acrisure Stadium, PIT'},
+  'BAL vs CIN': {lat:39.2780, lon:-76.6227, name:'M&T Bank Stadium, BAL'},
+};
+
+// --- SPORT KEY MAP (Odds API sport keys) ---
+const ODDS_SPORT_KEYS = {
+  nfl:    'americanfootball_nfl',
+  nba:    'basketball_nba',
+  mlb:    'baseball_mlb',
+  nhl:    'icehockey_nhl',
+  ncaa:   'americanfootball_ncaaf',
+  wnba:   'basketball_wnba',
+  mma:    'mma_mixed_martial_arts',
+  boxing: 'boxing',
+  soccer: {
+    epl:         'soccer_epl',
+    laliga:      'soccer_spain_la_liga',
+    bundesliga:  'soccer_germany_bundesliga',
+    seriea:      'soccer_italy_serie_a',
+    ligue1:      'soccer_france_ligue_one',
+    ucl:         'soccer_uefa_champs_league',
+    mls:         'soccer_usa_mls',
+    eredivisie:  'soccer_netherlands_eredivisie',
+    ligaportugal:'soccer_portugal_primeira_liga',
+    brasileiro:  'soccer_brazil_campeonato',
+  }
+};
+
+// --- ESPN SPORT MAP ---
+const ESPN_SPORT_MAP = {
+  nfl:  {sport:'football',   league:'nfl'},
+  nba:  {sport:'basketball', league:'nba'},
+  mlb:  {sport:'baseball',   league:'mlb'},
+  nhl:  {sport:'hockey',     league:'nhl'},
+  ncaa: {sport:'football',   league:'college-football'},
+  wnba: {sport:'basketball', league:'wnba'},
+};
+
+// ━━━ LIVE DATA FETCHERS ━━━
+
+// Fetch live odds from The Odds API
+async function fetchLiveOdds(sport, league) {
+  if(!USE.ODDS || !CFG.ODDS_API_KEY || CFG.ODDS_API_KEY === 'YOUR_ODDS_API_KEY') return null;
+  try {
+    let sportKey = ODDS_SPORT_KEYS[sport];
+    if(sport === 'soccer' && league) sportKey = ODDS_SPORT_KEYS.soccer[league] || 'soccer_epl';
+    if(!sportKey || typeof sportKey === 'object') return null;
+    const url = `https://api.the-odds-api.com/v4/sports/${sportKey}/odds/?apiKey=${CFG.ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american&dateFormat=iso`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    return await res.json();
+  } catch(e) { console.warn('Odds API error:', e); return null; }
+}
+
+// Fetch injury reports from ESPN
+async function fetchESPNInjuries(sport) {
+  if(!ESPN_SPORT_MAP[sport]) return null;
+  try {
+    const {sport: s, league: l} = ESPN_SPORT_MAP[sport];
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/injuries`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    return await res.json();
+  } catch(e) { console.warn('ESPN injuries error:', e); return null; }
+}
+
+// Fetch news from ESPN
+async function fetchESPNNews(sport) {
+  if(!ESPN_SPORT_MAP[sport]) return null;
+  try {
+    const {sport: s, league: l} = ESPN_SPORT_MAP[sport];
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/news?limit=20`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    return await res.json();
+  } catch(e) { console.warn('ESPN news error:', e); return null; }
+}
+
+// Fetch schedule/scoreboard from ESPN
+async function fetchESPNSchedule(sport) {
+  if(!ESPN_SPORT_MAP[sport]) return null;
+  try {
+    const {sport: s, league: l} = ESPN_SPORT_MAP[sport];
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/scoreboard`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    return await res.json();
+  } catch(e) { console.warn('ESPN schedule error:', e); return null; }
+}
+
+// Fetch weather for a game location
+async function fetchWeather(lat, lon, locationName) {
+  if(!USE.WEATHER || !CFG.WEATHER_API_KEY || CFG.WEATHER_API_KEY === 'YOUR_WEATHER_API_KEY') return null;
+  try {
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${CFG.WEATHER_API_KEY}&units=imperial`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    const data = await res.json();
+    return {
+      temp: Math.round(data.main.temp),
+      windSpeed: Math.round(data.wind.speed),
+      conditions: data.weather[0].description,
+      location: locationName,
+    };
+  } catch(e) { console.warn('Weather API error:', e); return null; }
+}
+
+// Fetch breaking sports news from NewsAPI
+async function fetchBreakingNews(sport) {
+  if(!USE.NEWS || !CFG.NEWS_API_KEY || CFG.NEWS_API_KEY === 'YOUR_NEWS_API_KEY') return null;
+  const queries = {
+    nfl:'NFL injury OR NFL lineup', nba:'NBA injury OR NBA lineup',
+    mlb:'MLB injury OR MLB pitcher', nhl:'NHL injury OR NHL lineup',
+    ncaa:'college football injury', wnba:'WNBA injury',
+    soccer:'soccer injury OR soccer lineup', tennis:'tennis injury OR tennis withdrawal',
+    mma:'UFC injury OR UFC weight', boxing:'boxing injury OR boxing fight',
+    golf:'PGA withdrawal OR golf injury', f1:'Formula 1 penalty OR F1 grid',
+    nascar:'NASCAR weather OR NASCAR race',
+  };
+  try {
+    const q = encodeURIComponent(queries[sport] || 'sports injury');
+    const url = `https://newsapi.org/v2/everything?q=${q}&sortBy=publishedAt&pageSize=10&apiKey=${CFG.NEWS_API_KEY}`;
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data.articles || null;
+  } catch(e) { console.warn('NewsAPI error:', e); return null; }
+}
+
+// Parse ESPN injuries into Scout news feed format
+function parseESPNInjuries(data, sport) {
+  if(!data) return [];
+  const items = [];
+
+  // Format 1: data.injuries array (older endpoint)
+  if(data.injuries && Array.isArray(data.injuries)) {
+    data.injuries.slice(0,8).forEach(inj => {
+      const player = inj.athlete?.displayName || inj.athlete?.fullName || inj.displayName || '';
+      if(!player) return;
+      const team = inj.team?.displayName || inj.team?.shortDisplayName || '';
+      const status = inj.status || inj.type?.description || 'Questionable';
+      const detail = inj.details?.detail || inj.details?.fantasyStatus?.description || inj.shortComment || 'Monitor status';
+      const type = status.toLowerCase().includes('out') ? 'urgent' : 'warn';
+      items.push({ type, tag:'injury', label:'INJ', time:'Live',
+        h:`${team ? team+': ' : ''}${player} ${status.toUpperCase()}`, b: detail, live: true });
+    });
+  }
+
+  // Format 2: data.season.types[].groups[].athletes (newer endpoint)
+  if(data.season?.types) {
+    data.season.types.forEach(t => {
+      (t.groups || []).forEach(g => {
+        (g.athletes || []).slice(0, 3).forEach(a => {
+          const player = a.athlete?.displayName || a.athlete?.fullName || '';
+          if(!player) return;
+          const team = a.athlete?.team?.shortDisplayName || '';
+          const status = a.injuries?.[0]?.status || 'Questionable';
+          const detail = a.injuries?.[0]?.details?.detail || 'Monitor status';
+          const type = status.toLowerCase().includes('out') ? 'urgent' : 'warn';
+          items.push({ type, tag:'injury', label:'INJ', time:'Live',
+            h:`${team ? team+': ' : ''}${player} ${status.toUpperCase()}`, b: detail, live: true });
+        });
+      });
+    });
+  }
+
+  // Format 3: flat array of athlete objects
+  if(Array.isArray(data) && data.length > 0 && data[0].athlete) {
+    data.slice(0,8).forEach(a => {
+      const player = a.athlete?.displayName || '';
+      if(!player) return;
+      const team = a.team?.shortDisplayName || '';
+      const status = a.status || 'Questionable';
+      items.push({ type:'warn', tag:'injury', label:'INJ', time:'Live',
+        h:`${team ? team+': ' : ''}${player} ${status.toUpperCase()}`, b:'Monitor status', live: true });
+    });
+  }
+
+  return items.slice(0,8);
+}
+
+// Parse ESPN news into Scout news feed format
+function parseESPNNews(data) {
+  if(!data) return [];
+  // Handle both data.articles and data.feed
+  const articles = data.articles || data.feed || [];
+  if(!articles.length) return [];
+  return articles.slice(0,6).map(article => {
+    const headline = article.headline || article.title || article.description || '';
+    const desc = article.description || article.summary || '';
+    const hl = headline.toLowerCase();
+    return {
+      type: 'warn',
+      tag: hl.includes('injur') ? 'injury' : hl.includes('lineup') ? 'lineup' : 'line',
+      label: hl.includes('injur') ? 'INJ' : hl.includes('lineup') ? 'LINEUP' : 'NEWS',
+      time: 'Live',
+      h: headline.substring(0,70) || 'Breaking news',
+      b: desc.substring(0,100) || '',
+      live: true,
+    };
+  });
+}
+
+// Parse ESPN schedule into Scout schedule format
+function parseESPNSchedule(data) {
+  if(!data || !data.events) return [];
+  return data.events.slice(0,5).map(ev => {
+    const comps = ev.competitions?.[0];
+    const home = comps?.competitors?.find(c => c.homeAway === 'home')?.team?.abbreviation || '';
+    const away = comps?.competitors?.find(c => c.homeAway === 'away')?.team?.abbreviation || '';
+    const status = ev.status?.type?.name || '';
+    const live = status === 'STATUS_IN_PROGRESS';
+    const time = live ? `LIVE ${ev.status?.displayClock || ''}` :
+                 ev.date ? new Date(ev.date).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : 'TBD';
+    const hasAlert = comps?.injuries?.length > 0;
+    return { t:`${away} vs ${home}`, time, live, a: hasAlert };
+  });
+}
+
+// Parse live odds into Scout card format
+function parseOddsToCards(games) {
+  if(!games || !games.length) return [];
+  return games.slice(0,6).map(g => {
+    const book = g.bookmakers?.[0];
+    const h2h = book?.markets?.find(m => m.key === 'h2h');
+    const spread = book?.markets?.find(m => m.key === 'spreads');
+    const totals = book?.markets?.find(m => m.key === 'totals');
+    const home = g.home_team?.split(' ').slice(-1)[0] || g.home_team;
+    const away = g.away_team?.split(' ').slice(-1)[0] || g.away_team;
+    const homeH2h = h2h?.outcomes?.find(o => o.name === g.home_team)?.price;
+    const awayH2h = h2h?.outcomes?.find(o => o.name === g.away_team)?.price;
+    const homeSpread = spread?.outcomes?.find(o => o.name === g.home_team);
+    const total = totals?.outcomes?.find(o => o.name === 'Over')?.point;
+    const fmt = p => p > 0 ? `+${Math.round(p)}` : `${Math.round(p)}`;
+    return {
+      team: `${away} vs ${home}`,
+      sc: 'green', st: 'LIVE ODDS', conf: 8,
+      rows: [
+        {icon:'LNE', label:'Moneyline', t:`${away} ${awayH2h ? fmt(awayH2h) : 'N/A'} · ${home} ${homeH2h ? fmt(homeH2h) : 'N/A'}`},
+        {icon:'LNE', label:'Spread', t: homeSpread ? `${home} ${homeSpread.point > 0 ? '+' : ''}${homeSpread.point} (${fmt(homeSpread.price)})` : 'N/A'},
+        {icon:'LNE', label:'Total', t: total ? `O/U ${total} · via ${book?.title || 'DraftKings'}` : 'N/A'},
+      ],
+      trend: null,
+      verdict: 'green',
+      vt: `Live odds via ${book?.title || 'DraftKings'}. Line movement and sharp signals update in real time.`,
+      liveOdds: true,
+    };
+  });
+}
+
+// Build weather alert card
+function buildWeatherCard(weather, game) {
+  if(!weather) return null;
+  const isRisk = weather.windSpeed > 15 || weather.temp < 32;
+  const verdict = isRisk ? 'red' : 'amber';
+  const status = isRisk ? 'WEATHER RISK' : 'MONITOR';
+  return {
+    team: game || 'OUTDOOR GAME',
+    sc: isRisk ? 'red' : 'amber',
+    st: status,
+    conf: 8,
+    rows: [
+      {icon:'WX', label:'Conditions', t:`${weather.conditions} - ${weather.temp}F at ${weather.location}`},
+      {icon:'WX', label:'Wind', t:`${weather.windSpeed}mph winds at kickoff`},
+      {icon:'TGT', label:'Impact', t: weather.windSpeed > 20 ? 'Heavy wind severely impacts passing game and kicking. Lean under.' : weather.temp < 32 ? 'Extreme cold impacts ball handling and player performance.' : 'Weather is a factor - monitor closer to game time.'},
+    ],
+    trend: weather.windSpeed > 20 ? {
+      label:'NFL 20mph+ Wind Games - 5 Seasons',
+      stats:[{n:'71%',l:'UNDER RATE',c:'green'}],
+      bars:[{l:'Under rate',p:71,c:'bar-green'}],
+      sample:'n=94 games with 20mph+ wind at kickoff'
+    } : null,
+    verdict,
+    vt: weather.windSpeed > 20 ? 'Games with 20mph+ winds go under 71% of the time over 5 seasons. Strong under play.' : `${weather.temp}F and ${weather.windSpeed}mph winds - factor this into your bets.`,
+  };
+}
+
+// Master live data loader - called when switching sports/tabs
+async function loadLiveData(sport, tab, league) {
+  const results = { news:[], schedule:[], cards:[] };
+
+  // Try ESPN for schedule
+  try {
+    const schedData = await fetchESPNSchedule(sport);
+    if(schedData) results.schedule = parseESPNSchedule(schedData);
+  } catch(e){}
+
+  // Try ESPN for injuries news
+  try {
+    const injData = await fetchESPNInjuries(sport);
+    if(injData) results.news.push(...parseESPNInjuries(injData, sport));
+  } catch(e){}
+
+  // Try ESPN for general news
+  try {
+    const newsData = await fetchESPNNews(sport);
+    if(newsData) results.news.push(...parseESPNNews(newsData));
+  } catch(e){}
+
+  // Try Odds API for lines tab
+  if(tab === 'lines' || tab === 'odds') {
+    try {
+      const oddsData = await fetchLiveOdds(sport, league);
+      if(oddsData) results.cards = parseOddsToCards(oddsData);
+    } catch(e){}
+  }
+
+  return results;
+}
+
+// --- NAV ---
+function openDash(){
+  // Add #app to URL and open in new tab
+  const url = window.location.href.split('#')[0] + '#app';
+  window.open(url, '_blank');
+}
+function showLanding(){
+  document.getElementById('dashboardPage').style.display='none';
+  document.getElementById('landingPage').style.display='flex';
+}
+function goTo(id){
+  // Make sure landing page is visible first
+  document.getElementById('landingPage').style.display='flex';
+  document.getElementById('dashboardPage').style.display='none';
+  // Small delay to ensure page is visible before scrolling
+  setTimeout(()=>{
+    const el = document.getElementById(id);
+    if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+  }, 50);
+}
+
+// --- CLOCK ---
+function tick(){ const el=document.getElementById('clock'); if(el) el.textContent=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+setInterval(tick,1000);
+
+// --- SPORTS ---
+const SPORTS=[
+  {id:'nfl',icon:'NFL',label:'NFL',count:3},{id:'nba',icon:'NBA',label:'NBA',count:5},
+  {id:'mlb',icon:'MLB',label:'MLB',count:2},{id:'nhl',icon:'NHL',label:'NHL',count:1},
+  {id:'ncaa',icon:'NCAA',label:'NCAA',count:4},{id:'wnba',icon:'WNBA',label:'WNBA',count:2},
+  {id:'soccer',icon:'SOC',label:'SOCCER',count:6},{id:'tennis',icon:'TEN',label:'TENNIS',count:3},
+  {id:'nascar',icon:'NAC',label:'NASCAR',count:1},{id:'mma',icon:'MMA',label:'MMA',count:2},
+  {id:'golf',icon:'GOLF',label:'GOLF',count:2},
+  {id:'boxing',icon:'BOX',label:'BOXING',count:2},
+  {id:'f1',icon:'F1',label:'F1',count:3},
+];
+
+const LEAGUES=[
+  {id:'epl',flag:'ENG',label:'Premier League'},{id:'laliga',flag:'ESP',label:'La Liga'},
+  {id:'bundesliga',flag:'GER',label:'Bundesliga'},{id:'seriea',flag:'ITA',label:'Serie A'},
+  {id:'ligue1',flag:'FRA',label:'Ligue 1'},{id:'ucl',flag:'UCL',label:'Champions League'},
+  {id:'mls',flag:'USA',label:'MLS'},{id:'eredivisie',flag:'NED',label:'Eredivisie'},
+  {id:'ligaportugal',flag:'POR',label:'Liga Portugal'},{id:'brasileiro',flag:'BRA',label:'Brasileirao'},
+];
+
+const ITABS=[
+  {id:'injuries',label:'Injuries',icon:'INJ'},
+  {id:'lines',label:'Lines',icon:'LNE'},
+  {id:'sharp',label:'Sharp $',icon:'SHP'},
+  {id:'weather',label:'Weather',icon:'WX'},
+  {id:'fatigue',label:'Fatigue',icon:'FAT'},
+  {id:'revenge',label:'Revenge',icon:'RVG'},
+  {id:'matchups',label:'Matchups',icon:'TGT'},
+  {id:'suspension',label:'Suspensions',icon:'SUS'},
+  {id:'rotation',label:'Rotation',icon:'ROT'},
+];
+
+const FMAP={all:'ALL',injury:'INJ',line:'LINE',sharp:'SHARP',weather:'WTHR',lineup:'LINEUP',revenge:'RVNG',fatigue:'FAT',suspension:'SUSP',rotation:'ROT',condition:'COND'};
+
+// --- TICKER ---
+const TICKERS=[
+  {s:'NBA',t:'. Anthony Davis QUESTIONABLE -- knee, game-time decision'},
+  {s:'NFL',t:'. Dak Prescott ruled OUT -- Cooper Rush starts'},
+  {s:'EPL',t:'. Erling Haaland LIMITED in training -- Saturday decision'},
+  {s:'MMA',t:'. UFC 310 main event fighter missed weight -- huge swing'},
+  {s:'MLB',t:'. Gerrit Cole scratched -- elbow, Rodon gets the start'},
+  {s:'NBA',t:'. Sharp steam on Thunder ML -- three groups confirmed'},
+  {s:'GOLF',t:'. Scottie Scheffler WD -- back spasms before Round 2'},
+  {s:'TENNIS',t:'. Djokovic retired mid-match -- wrist injury'},
+  {s:'WNBA',t:'. A\'ja Wilson DOUBTFUL -- ankle, two days no practice'},
+  {s:'SERIE A',t:'. Marquinhos suspended -- PSG back line exposed'},
+  {s:'BOXING',t:'. Canelo Alvarez -- hand issue flagged in camp, odds drifting'},
+  {s:'F1',t:'. Max Verstappen grid penalty confirmed -- starts P6 Monaco'},
+];
+
+function buildTicker(){
+  const el=document.getElementById('tickerInner');
+  if(!el)return;
+  const all=[...TICKERS,...TICKERS];
+  el.innerHTML=all.map(t=>`<span class="ticker-item"><span class="ticker-sport">${t.s}</span>${t.t}<span class="ticker-sep"> . </span></span>`).join('');
+}
+
+// --- SCHEDULE ---
+const SCHEDS={
+  nfl:[{t:'KC vs LAC',time:'4:25 PM',live:false,a:true},{t:'PHI vs DAL',time:'8:20 PM',live:false,a:true},{t:'GB vs MIN',time:'1:00 PM',live:false,a:false}],
+  nba:[{t:'LAL vs DEN',time:'LIVE Q3',live:true,a:true},{t:'BOS vs MIA',time:'7:30 PM',live:false,a:true},{t:'GSW vs PHX',time:'10:00 PM',live:false,a:true}],
+  mlb:[{t:'NYY vs BOS',time:'7:05 PM',live:false,a:true},{t:'LAD vs SF',time:'9:45 PM',live:false,a:false}],
+  nhl:[{t:'COL vs VGK',time:'9:00 PM',live:false,a:true}],
+  ncaa:[{t:'ALA vs UGA',time:'3:30 PM',live:false,a:true},{t:'OSU vs PSU',time:'7:30 PM',live:false,a:true}],
+  wnba:[{t:'LV vs NY',time:'7:00 PM',live:false,a:true},{t:'SEA vs CHI',time:'9:00 PM',live:false,a:false}],
+  soccer:[{t:'MCI vs ARS',time:'LIVE 67\'',live:true,a:true},{t:'BAR vs RM',time:'3:00 PM',live:false,a:true}],
+  tennis:[{t:'Alcaraz vs Sinner',time:'LIVE SET 2',live:true,a:false}],
+  nascar:[{t:'Talladega 500',time:'DELAYED',live:false,a:true}],
+  mma:[{t:'UFC 310',time:'10:00 PM',live:false,a:true}],
+  golf:[{t:'PGA Tour R2',time:'LIVE',live:true,a:true}],
+  boxing:[{t:'Canelo vs Munguia',time:'10:00 PM',live:false,a:true},{t:'Tank vs Lomachenko',time:'8:00 PM',live:false,a:true}],
+  f1:[{t:'Monaco GP -- FP3',time:'LIVE',live:true,a:false},{t:'Monaco GP -- Qualifying',time:'3:00 PM',live:false,a:true},{t:'Monaco GP -- Race',time:'SUN 9:00 AM',live:false,a:false}],
+};
+
+// --- DATA ---
+const DATA={
+  nfl:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'2m',h:'Cowboys: Dak Prescott ruled OUT',b:'Hand injury. Rush starts. Line moved 4.5 pts immediately.'},
+      {type:'warn',tag:'line',label:'LINE',time:'8m',h:'Eagles -6.5 -> -4.5 on sharp action',b:'Big money on Cowboys. Public 68% on Eagles.'},
+      {type:'warn',tag:'weather',label:'WTHR',time:'15m',h:'Bears game: 22mph wind, 28 degF Sunday',b:'Extreme cold -- fade passing, lean under.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'22m',h:'49ers: McCaffrey FULL -- no limits',b:'CMC confirmed starter. Green light SF offense.'},
+      {type:'urgent',tag:'sharp',label:'SHARP',time:'31m',h:'Reverse line movement on Packers',b:'Sharp money disagrees with 72% public.'},
+      {type:'warn',tag:'revenge',label:'RVNG',time:'45m',h:'Diggs vs Bills -- first game back',b:'Emotional matchup. History favors motivated players.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'COWBOYS',sc:'red',st:'OUT',conf:9,rows:[{icon:'INJ',label:'Injury',t:'Dak Prescott -- hand, officially OUT. Cooper Rush starts.'},{icon:'TGT',label:'Impact',t:'Cowboys offense loses 40%+ of upside without Dak.'},{icon:'LNE',label:'Line Move',t:'Cowboys +3 -> +7.5 instantly after the news broke.'}],
+        trend:{label:'NFL QB Injury Record -- 3 Seasons',stats:[{n:'41%',l:'WIN RATE',c:'red'},{n:'38%',l:'ATS COVER',c:'red'},{n:'-8.2',l:'PTS VS LINE',c:'red'}],bars:[{l:'Cover w/ backup QB',p:38,c:'bar-red'},{l:'Cover w/ starter',p:67,c:'bar-green'}],sample:'n=142 games with backup QBs starting'},
+        verdict:'red',vt:'Backup QBs cover at just 38% ATS over 3 seasons. Fade the Cowboys until this line reflects the full downgrade.'},
+        {team:'CHIEFS',sc:'amber',st:'QUESTIONABLE',conf:6,rows:[{icon:'INJ',label:'Injury',t:'Mahomes -- ankle, limited Wed/Thu. Full practice Friday.'},{icon:'TGT',label:'Impact',t:'Historically plays through minor ankle issues.'}],
+        trend:{label:'Mahomes Limited-Practice Weeks -- 4 Seasons',stats:[{n:'83%',l:'PLAYED',c:'green'},{n:'61%',l:'COVERED',c:'green'}],bars:[{l:'Played next game',p:83,c:'bar-green'},{l:'KC covered',p:61,c:'bar-green'}],sample:'n=18 limited-practice weeks tracked'},
+        verdict:'green',vt:'Mahomes plays in 83% of games after limited-practice weeks. Cover rate stays above 60%. Lean on KC with confidence.'},
+        {team:'49ERS',sc:'green',st:'FULL GO',conf:9,rows:[{icon:'OK',label:'Status',t:'McCaffrey -- full practice all week, zero limitations.'},{icon:'TGT',label:'Impact',t:'CMC healthy is one of the best spots in football.'}],
+        trend:{label:'49ers With vs Without CMC -- 2 Seasons',stats:[{n:'67%',l:'WIN RATE',c:'green'},{n:'63%',l:'ATS COVER',c:'green'},{n:'+11.4',l:'PPG DIFF',c:'green'}],bars:[{l:'Cover rate WITH CMC',p:63,c:'bar-green'},{l:'Cover rate WITHOUT CMC',p:41,c:'bar-red'}],sample:'n=94 games tracked across 2 seasons'},
+        verdict:'green',vt:'49ers cover at 63% with CMC vs 41% without him. Full health is a clear green light on San Francisco.'},
+      ],
+      weather:[
+        {team:'BEARS GAME',sc:'red',st:'EXTREME',conf:9,rows:[{icon:'WX',label:'Conditions',t:'22mph winds, gusts 34mph. 28 degF at kickoff Sunday.'},{icon:'TGT',label:'Impact',t:'Both QBs will struggle deep. Run-heavy, low scoring.'},{icon:'LNE',label:'Total',t:'Opened 44.5, now 38. Under heavily priced in.'}],
+        trend:{label:'NFL 20mph+ Wind Games -- 5 Seasons',stats:[{n:'71%',l:'UNDER RATE',c:'green'},{n:'23.1',l:'AVG PTS SCORED',c:'amber'},{n:'-6.2',l:'VS TOTAL',c:'green'}],bars:[{l:'Under rate',p:71,c:'bar-green'},{l:'Under 35 total pts',p:78,c:'bar-green'}],sample:'n=94 games with 20mph+ wind at kickoff'},
+        verdict:'amber',vt:'NFL games with 20mph+ winds go under 71% of the time over 5 seasons. Take the under if any value remains.'},
+      ],
+      fatigue:[
+        {team:'RAVENS',sc:'amber',st:'TRAVEL RISK',conf:5,rows:[{icon:'FAT',label:'Schedule',t:'Returning from London game last week.'},{icon:'TGT',label:'Stats',t:'London-return teams consistently underperform.'}],
+        trend:{label:'NFL London-Return Week ATS -- Historical',stats:[{n:'39%',l:'ATS COVER',c:'red'},{n:'-4.1',l:'PTS VS LINE',c:'red'}],bars:[{l:'Cover rate returning from London',p:39,c:'bar-red'},{l:'League average cover rate',p:50,c:'bar-amber'}],sample:'n=79 London-return games tracked'},
+        verdict:'amber',vt:'London-return teams cover at just 39% ATS the following week. Cross-Atlantic travel fatigue is consistently underpriced.'},
+      ],
+      lines:[
+        {team:'EAGLES -4.5',sc:'red',st:'SHARP FADE',conf:8,rows:[{icon:'LNE',label:'Move',t:'Opened -6.5, now -4.5 against 68% public money.'},{icon:'SHP',label:'Sharp $',t:'Reverse line movement -- sharps betting Cowboys.'}],
+        trend:{label:'Reverse Line Movement 3+ Pts -- All Sports',stats:[{n:'64%',l:'SHARP SIDE COVERS',c:'green'},{n:'+$940',l:'PROFIT/100 BETS',c:'green'}],bars:[{l:'Sharp side covers',p:64,c:'bar-green'},{l:'Public side covers',p:36,c:'bar-red'}],sample:'n=312 reverse line movement spots'},
+        verdict:'red',vt:'RLM spots of 3+ points see the sharp side cover 64% of the time. Take Cowboys +4.5 before it moves further.'},
+      ],
+      revenge:[
+        {team:'DIGGS vs BILLS',sc:'amber',st:'WATCH',conf:5,rows:[{icon:'RVG',label:'Situation',t:'Stefon Diggs first game vs Buffalo since trade.'},{icon:'TGT',label:'History',t:'WRs in revenge spots outperform their averages.'}],
+        trend:{label:'WR Revenge Spots vs Former Teams',stats:[{n:'+18%',l:'TARGET SHARE',c:'green'},{n:'+23%',l:'YDS VS AVG',c:'green'},{n:'61%',l:'PROP HIT RATE',c:'green'}],bars:[{l:'Beat receiving prop',p:61,c:'bar-green'},{l:'Top target in game',p:54,c:'bar-amber'}],sample:'n=88 WR revenge games tracked'},
+        verdict:'amber',vt:'WRs against former teams hit their receiving props 61% of the time with +18% target share. Strong DFS play if game script allows.'},
+      ],
+      matchups:[
+        {team:'SLOT WR vs ATL',sc:'green',st:'EXPLOIT',conf:7,rows:[{icon:'TGT',label:'Edge',t:'Atlanta CB2 allowing 1.4 yds/route -- league worst.'},{icon:'TGT',label:'Play',t:'Slot WRs torching this coverage all season.'}],
+        trend:{label:'Slot WRs vs ATL CB2 -- This Season',stats:[{n:'1.4',l:'YDS/ROUTE',c:'red'},{n:'72%',l:'PROP HITS',c:'green'}],bars:[{l:'Slot WR prop hit rate vs ATL',p:72,c:'bar-green'},{l:'Season avg prop hit rate',p:51,c:'bar-amber'}],sample:'n=14 games tracked this season'},
+        verdict:'green',vt:'Atlanta\'s slot CB is the worst in the league by yds/route allowed. Slot WRs hit props 72% of the time against this coverage.'},
+      ],
+      sharp:[
+        {team:'PACKERS -1.5',sc:'green',st:'STEAM',conf:7,rows:[{icon:'SHP',label:'Sharp $',t:'Opened pick\'em, moved to GB -1.5 on sharp action only.'},{icon:'LNE',label:'Signal',t:'55% public on opponent. Pure sharp money move.'}],
+        trend:{label:'Sharp Steam Plays vs Public -- Last 3 Seasons',stats:[{n:'62%',l:'SHARP COVERS',c:'green'},{n:'+1.8',l:'AVG PTS WON',c:'green'}],bars:[{l:'Sharp side cover rate',p:62,c:'bar-green'},{l:'Public heavy side covers',p:38,c:'bar-red'}],sample:'n=189 steam plays tracked'},
+        verdict:'green',vt:'When sharp money moves a line while the public fades, the sharp side covers 62% of the time. Back Green Bay.'},
+      ],
+    }
+  },
+  nba:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'1m',h:'Lakers: Anthony Davis QUESTIONABLE',b:'Knee soreness. Did not practice. Game-time.'},
+      {type:'urgent',tag:'injury',label:'INJ',time:'5m',h:'Warriors: Steph Curry OUT',b:'Hamstring. Officially ruled out. Klay doubtful.'},
+      {type:'warn',tag:'fatigue',label:'FAT',time:'12m',h:'Celtics on B2B -- flew from Denver',b:'Starters logged 38+ mins at altitude last night.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'18m',h:'Nuggets: Jokic FULL -- no limits',b:'Nikola confirmed healthy and starting tonight.'},
+      {type:'warn',tag:'line',label:'LINE',time:'25m',h:'Heat +3.5 -> +1.5 sharp steam',b:'Reverse line movement. Sharps buying Miami.'},
+      {type:'ok',tag:'sharp',label:'SHARP',time:'38m',h:'Thunder ML seeing steam',b:'OKC ML heavy sharp action despite public fade.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'LAKERS',sc:'amber',st:'QUESTIONABLE',conf:5,rows:[{icon:'INJ',label:'Injury',t:'Anthony Davis -- knee soreness, did not practice.'},{icon:'TGT',label:'Impact',t:'AD averages 28/12. Lakers drop 8+ pts without him.'},{icon:'LNE',label:'Line',t:'Lakers -4 -> -1.5 on the AD news.'}],
+        trend:{label:'Lakers With vs Without AD -- 3 Seasons',stats:[{n:'38%',l:'COVER W/O AD',c:'red'},{n:'59%',l:'COVER WITH AD',c:'green'},{n:'-9.4',l:'NET RATING',c:'red'}],bars:[{l:'Cover rate WITH AD',p:59,c:'bar-green'},{l:'Cover rate WITHOUT AD',p:38,c:'bar-red'}],sample:'n=61 games without AD tracked'},
+        verdict:'red',vt:'Lakers cover at just 38% without AD versus 59% with him. Do not bet them until he\'s officially confirmed to play.'},
+        {team:'WARRIORS',sc:'red',st:'OUT',conf:9,rows:[{icon:'INJ',label:'Injury',t:'Steph Curry -- hamstring, OFFICIALLY OUT. Klay doubtful.'},{icon:'TGT',label:'Impact',t:'Without Curry+Klay, GSW is a bottom-10 offense.'},{icon:'SHP',label:'Line',t:'Line moved 9 full points on the news.'}],
+        trend:{label:'Warriors Without Curry -- 4 Seasons',stats:[{n:'34%',l:'WIN RATE',c:'red'},{n:'36%',l:'ATS COVER',c:'red'},{n:'-14.2',l:'NET RATING',c:'red'}],bars:[{l:'Win rate WITHOUT Steph',p:34,c:'bar-red'},{l:'Win rate WITH Steph',p:67,c:'bar-green'}],sample:'n=47 games without Curry tracked'},
+        verdict:'red',vt:'Warriors cover at just 36% without Steph -- one of the worst star-out records in the league. Fade or take the opponent.'},
+      ],
+      fatigue:[
+        {team:'CELTICS B2B',sc:'red',st:'DANGER',conf:8,rows:[{icon:'FAT',label:'Schedule',t:'Second night B2B. Denver road game then home tonight.'},{icon:'TGT',label:'Stats',t:'Celtics 6-14 ATS on second night of B2B this season.'},{icon:'LNE',label:'Line',t:'Still favored -5. Books haven\'t fully adjusted.'}],
+        trend:{label:'Celtics 2nd Night B2B After Road Game -- 2 Seasons',stats:[{n:'30%',l:'ATS COVER',c:'red'},{n:'-6.1',l:'PTS VS LINE',c:'red'},{n:'6-14',l:'ATS RECORD',c:'red'}],bars:[{l:'Cover rate (B2B after road)',p:30,c:'bar-red'},{l:'Season avg cover rate',p:56,c:'bar-green'}],sample:'n=20 games in this exact spot'},
+        verdict:'red',vt:'Celtics in this exact spot cover at just 30% -- 26 percentage points below their season average. One of the clearest fade spots in the NBA.'},
+      ],
+      lines:[
+        {team:'HEAT +1.5',sc:'green',st:'SHARP VALUE',conf:8,rows:[{icon:'LNE',label:'Move',t:'Heat went from +3.5 to +1.5 on sharp money.'},{icon:'SHP',label:'Sharp $',t:'72% public on opponent. Classic reverse line move.'}],
+        trend:{label:'NBA Reverse Line Movement 2+ Pts',stats:[{n:'63%',l:'SHARP SIDE COVERS',c:'green'},{n:'+$820',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp side cover rate',p:63,c:'bar-green'},{l:'Public side cover rate',p:37,c:'bar-red'}],sample:'n=234 RLM spots in the NBA'},
+        verdict:'green',vt:'NBA reverse line movement spots cover 63% of the time. Take Miami +1.5 before it closes at pick\'em.'},
+      ],
+      sharp:[
+        {team:'THUNDER ML',sc:'green',st:'STEAM',conf:9,rows:[{icon:'SHP',label:'Sharp $',t:'Heavy steam OKC ML. Three sharp groups confirmed.'},{icon:'LNE',label:'Move',t:'Thunder +1 -> -2 on sharp action only.'}],
+        trend:{label:'Multi-Group Sharp Steam NBA -- This Season',stats:[{n:'71%',l:'WIN RATE',c:'green'},{n:'68%',l:'ATS COVER',c:'green'},{n:'+$1,240',l:'PROFIT/100',c:'green'}],bars:[{l:'Win rate with 3+ groups',p:71,c:'bar-green'},{l:'Single group steam',p:58,c:'bar-amber'}],sample:'n=41 multi-group steam plays this season'},
+        verdict:'green',vt:'When three or more sharp groups align on one side, that team wins 71% of the time this season. Back OKC with full confidence.'},
+      ],
+      revenge:[
+        {team:'JIMMY vs HEAT',sc:'amber',st:'WATCH',conf:5,rows:[{icon:'RVG',label:'Situation',t:'Jimmy Butler first game against Miami since departure.'},{icon:'TGT',label:'History',t:'Jimmy scores 6+ more in revenge spots historically.'}],
+        trend:{label:'Jimmy Butler Revenge Games vs Former Teams',stats:[{n:'+6.2',l:'PTS VS AVG',c:'green'},{n:'64%',l:'PROP HIT RATE',c:'green'}],bars:[{l:'Beat scoring prop',p:64,c:'bar-green'},{l:'25+ point games',p:55,c:'bar-amber'}],sample:'n=11 Jimmy Butler revenge spots tracked'},
+        verdict:'amber',vt:'Butler averages 6.2 more points in revenge spots and hits his scoring prop 64% of the time. Strong DFS consideration.'},
+      ],
+      matchups:[
+        {team:'JOKIC MATCHUP',sc:'green',st:'EXPLOIT',conf:8,rows:[{icon:'TGT',label:'Edge',t:'Opponent C allows 68 FG% to opposing bigs -- worst in league.'},{icon:'TGT',label:'Play',t:'Jokic healthy plus weakest matchup equals massive ceiling.'}],
+        trend:{label:'Jokic vs Bottom-5 Defensive Bigs -- 3 Seasons',stats:[{n:'31.4',l:'AVG PTS',c:'green'},{n:'13.2',l:'AVG REB',c:'green'},{n:'79%',l:'HIT 55+ FP',c:'green'}],bars:[{l:'Hit 55+ fantasy points',p:79,c:'bar-green'},{l:'30+ point games',p:63,c:'bar-green'}],sample:'n=38 games vs bottom-5 defensive centers'},
+        verdict:'green',vt:'Jokic averages 31.4 pts and hits 55+ fantasy points 79% of the time against bottom-5 centers. Best play on the slate tonight.'},
+      ],
+    }
+  },
+  mlb:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'3m',h:'Yankees: Gerrit Cole scratched -- elbow',b:'Carlos Rodon gets the start. Massive line swing.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'20m',h:'Dodgers: Ohtani confirmed DH -- batting 2nd',b:'Shohei fully healthy and starting tonight.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'YANKEES',sc:'red',st:'SP SCRATCH',conf:9,rows:[{icon:'INJ',label:'Injury',t:'Gerrit Cole scratched -- elbow. Rodon starts.'},{icon:'TGT',label:'Impact',t:'Cole 2.80 ERA vs Rodon 4.90. Massive drop.'},{icon:'LNE',label:'Line',t:'Yankees -140 -> +105. 2.45 run line swing.'}],
+        trend:{label:'Ace Day-Of Scratch -- 4 MLB Seasons',stats:[{n:'58%',l:'OPP WIN RATE',c:'green'},{n:'61%',l:'OPP RUN LINE',c:'green'},{n:'+1.8',l:'AVG RUNS DIFF',c:'green'}],bars:[{l:'Opponent win rate',p:58,c:'bar-green'},{l:'Opponent run line covers',p:61,c:'bar-green'}],sample:'n=89 day-of pitcher scratches tracked'},
+        verdict:'red',vt:'When an ace is scratched day-of, the opponent wins 58% of the time. Bet the Red Sox or stay away from the Yankees entirely.'},
+      ],
+      matchups:[
+        {team:'DODGERS STACK',sc:'green',st:'EXPLOIT',conf:7,rows:[{icon:'TGT',label:'Edge',t:'Opposing SP has .340 OBP allowed vs left-handed lineup.'},{icon:'TGT',label:'Play',t:'Ohtani, Freeman, Muncy all confirmed in the lineup.'}],
+        trend:{label:'Dodgers vs Vulnerable Righties -- 2 Seasons',stats:[{n:'68%',l:'WIN RATE',c:'green'},{n:'5.8',l:'AVG RUNS',c:'green'},{n:'71%',l:'OVER RATE',c:'green'}],bars:[{l:'Win rate',p:68,c:'bar-green'},{l:'Over on team runs',p:71,c:'bar-green'}],sample:'n=28 games vs righties with .330+ OBP allowed'},
+        verdict:'green',vt:'Dodgers score 5.8 runs per game at full strength vs vulnerable righties. Strong stack tonight -- DFS and game total both favorable.'},
+      ],
+    }
+  },
+  nhl:{
+    news:[{type:'warn',tag:'injury',label:'INJ',time:'10m',h:'Avalanche: MacKinnon day-to-day',b:'Skipped morning skate. Game-time decision.'}],
+    intel:{
+      injuries:[
+        {team:'AVALANCHE',sc:'amber',st:'GAME-TIME',conf:4,rows:[{icon:'INJ',label:'Injury',t:'Nathan MacKinnon -- upper body, skipped skate.'},{icon:'TGT',label:'Impact',t:'MacKinnon accounts for 38% of Avs scoring.'}],
+        trend:{label:'Avalanche Without MacKinnon -- 3 Seasons',stats:[{n:'34%',l:'WIN RATE',c:'red'},{n:'38%',l:'ATS COVER',c:'red'},{n:'-1.8',l:'GOAL DIFF',c:'red'}],bars:[{l:'Win rate WITHOUT MacKinnon',p:34,c:'bar-red'},{l:'Win rate WITH MacKinnon',p:62,c:'bar-green'}],sample:'n=29 games without MacKinnon'},
+        verdict:'amber',vt:'Avalanche win at just 34% without MacKinnon vs 62% with him. Wait for official lineup before betting Colorado.'},
+      ],
+    }
+  },
+  ncaa:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'4m',h:'Alabama QB Milroe limited -- knee',b:'Questionable Saturday. Backup taking warmup reps.'},
+      {type:'warn',tag:'line',label:'LINE',time:'9m',h:'Ohio State -17 -> -13.5 sharp fade',b:'Significant drop. Books taking sharp on underdog.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'30m',h:'Georgia: RB confirmed after suspension',b:'Back from 1-game ban. Huge for Bulldogs offense.'},
+      {type:'warn',tag:'weather',label:'WTHR',time:'50m',h:'Michigan game: 18mph wind, rain',b:'Adds to under lean in already run-heavy matchup.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'ALABAMA',sc:'amber',st:'QUESTIONABLE',conf:6,rows:[{icon:'INJ',label:'Injury',t:'QB Milroe -- knee, limited practice, game-time call.'},{icon:'TGT',label:'Impact',t:'Backup at 60% completion vs Milroe\'s 72%.'},{icon:'LNE',label:'Line',t:'Bama -14 -> -9 on injury reports this week.'}],
+        trend:{label:'Alabama With Backup QB -- 5 Seasons',stats:[{n:'38%',l:'ATS COVER',c:'red'},{n:'50%',l:'WIN RATE',c:'amber'},{n:'-11.2',l:'PTS VS LINE',c:'red'}],bars:[{l:'Cover rate WITH Milroe',p:67,c:'bar-green'},{l:'Cover rate WITH backup QB',p:38,c:'bar-red'}],sample:'n=8 games with backup QB starting'},
+        verdict:'red',vt:'Alabama covers at just 38% with a backup QB versus 67% with Milroe. This spread needs to drop much further if he is out.'},
+      ],
+      lines:[
+        {team:'OHIO STATE -13.5',sc:'amber',st:'LINE DROP',conf:6,rows:[{icon:'LNE',label:'Move',t:'Dropped from -17 to -13.5. Sharp money on underdog.'},{icon:'SHP',label:'Signal',t:'80% public Ohio State. Classic sharp vs public split.'}],
+        trend:{label:'NCAAF Sharp vs 80%+ Public -- Last 3 Seasons',stats:[{n:'61%',l:'SHARP SIDE COVERS',c:'green'},{n:'+$710',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp side cover rate',p:61,c:'bar-green'},{l:'Heavy public side covers',p:39,c:'bar-red'}],sample:'n=156 spots with 80%+ public action'},
+        verdict:'amber',vt:'Sharp money against 80%+ public covers 61% in college football. Consider the underdog at +13.5.'},
+      ],
+    }
+  },
+  wnba:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'5m',h:'Aces: A\'ja Wilson DOUBTFUL -- ankle',b:'Did not practice Wednesday or Thursday.'},
+      {type:'warn',tag:'line',label:'LINE',time:'20m',h:'Liberty -3 -> -5.5 after Wilson news',b:'Line jumped once Wilson injury was confirmed.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'ACES',sc:'red',st:'DOUBTFUL',conf:8,rows:[{icon:'INJ',label:'Injury',t:'A\'ja Wilson -- ankle, doubtful. Two days no practice.'},{icon:'TGT',label:'Impact',t:'Wilson is 40% of Aces offense. Massive if she sits.'},{icon:'LNE',label:'Line',t:'Line moved 2.5 points against Las Vegas.'}],
+        trend:{label:'Aces Without A\'ja Wilson -- 3 Seasons',stats:[{n:'29%',l:'WIN RATE',c:'red'},{n:'31%',l:'ATS COVER',c:'red'},{n:'-12.1',l:'NET RATING',c:'red'}],bars:[{l:'Win rate WITH Wilson',p:74,c:'bar-green'},{l:'Win rate WITHOUT Wilson',p:29,c:'bar-red'}],sample:'n=14 games without A\'ja Wilson'},
+        verdict:'red',vt:'Aces win 74% with Wilson and just 29% without her. WNBA lines are thin -- this is a massive fade opportunity.'},
+      ],
+      sharp:[
+        {team:'LIBERTY ML',sc:'green',st:'STEAM',conf:7,rows:[{icon:'SHP',label:'Sharp $',t:'Sharp money piling on NY Liberty after Wilson news.'},{icon:'LNE',label:'Move',t:'Liberty -3 -> -5.5 combined sharp and public.'}],
+        trend:{label:'WNBA Sharp Money -- This Season',stats:[{n:'66%',l:'WIN RATE',c:'green'},{n:'63%',l:'COVER RATE',c:'green'}],bars:[{l:'Sharp side win rate',p:66,c:'bar-green'},{l:'Flip side wins',p:34,c:'bar-red'}],sample:'n=38 sharp money plays this WNBA season'},
+        verdict:'green',vt:'Sharp money wins 66% in the WNBA -- a market where books pay less attention and lines are easier to beat.'},
+      ],
+    }
+  },
+  soccer:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'2m',h:'Man City: Haaland limited -- fitness concern',b:'Missed Thursday training. Saturday decision.'},
+      {type:'warn',tag:'susp',label:'SUSP',time:'10m',h:'Vinicius Jr one yellow from ban',b:'Next booking = automatic 1-match suspension.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'18m',h:'Barcelona: Lewandowski confirmed starter',b:'No concerns ahead of El Clasico.'},
+      {type:'warn',tag:'rot',label:'ROT',time:'28m',h:'PSG rotating squad -- UCL in 3 days',b:'Manager confirmed B squad for Ligue 1 match.'},
+      {type:'warn',tag:'weather',label:'WTHR',time:'40m',h:'MLS Chicago -- heavy rain and wind',b:'Poor pitch conditions. Lean under on goals.'},
+      {type:'urgent',tag:'line',label:'LINE',time:'55m',h:'Atletico vs Juventus -- sharp steam',b:'ATM moved from +120 to -105 on sharp action.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'MAN CITY',sc:'amber',st:'CONCERN',conf:6,rows:[{icon:'INJ',label:'Injury',t:'Haaland -- missed Thursday training, fitness doubt.'},{icon:'TGT',label:'Impact',t:'Haaland scores 42% of City goals. Enormous if absent.'},{icon:'LNE',label:'Line',t:'City odds drifted from -180 to -130 on the concern.'}],
+        trend:{label:'Man City With vs Without Haaland -- EPL 2 Seasons',stats:[{n:'43%',l:'WIN W/O HLN',c:'red'},{n:'76%',l:'WIN WITH HLN',c:'green'},{n:'-1.2',l:'GOALS PER GAME',c:'red'}],bars:[{l:'Win rate WITH Haaland',p:76,c:'bar-green'},{l:'Win rate WITHOUT Haaland',p:43,c:'bar-red'}],sample:'n=38 EPL games with Haaland in/out'},
+        verdict:'amber',vt:'City wins 76% with Haaland vs 43% without him -- a 33-point swing. Wait for official lineup 1 hour before kickoff.'},
+        {team:'REAL MADRID',sc:'green',st:'FULL GO',conf:8,rows:[{icon:'OK',label:'Status',t:'Bellingham, Mbappe, Rodrygo all fit and starting.'},{icon:'TGT',label:'Impact',t:'Full attack available. Madrid is the best team in Europe.'}],
+        trend:{label:'Real Madrid Full Squad Available -- La Liga',stats:[{n:'79%',l:'WIN RATE',c:'green'},{n:'71%',l:'ATS COVER',c:'green'},{n:'3.1',l:'AVG GOALS',c:'green'}],bars:[{l:'Win rate at full strength',p:79,c:'bar-green'},{l:'Win rate with absences',p:54,c:'bar-amber'}],sample:'n=52 La Liga games with full squad'},
+        verdict:'green',vt:'Real Madrid at full strength wins 79% and covers 71% of the time. Back them with full confidence.'},
+      ],
+      suspension:[
+        {team:'VINICIUS JR',sc:'amber',st:'ONE CARD',conf:9,rows:[{icon:'SUS',label:'Status',t:'Vinicius on 4 yellows -- one more = automatic ban.'},{icon:'TGT',label:'Impact',t:'May play cautiously or be subbed off early.'},{icon:'TGT',label:'Angle',t:'Fade Vinicius anytime scorer markets this week.'}],
+        trend:{label:'Players One Card From Suspension -- Top 5 Leagues',stats:[{n:'-19%',l:'SHOT VOLUME',c:'red'},{n:'41%',l:'PROP HIT RATE',c:'red'},{n:'31%',l:'SUBBED EARLY',c:'amber'}],bars:[{l:'Anytime scorer hit rate',p:41,c:'bar-red'},{l:'Normal anytime scorer rate',p:58,c:'bar-green'}],sample:'n=211 one-card-away situations tracked'},
+        verdict:'amber',vt:'Players one card from suspension hit anytime scorer props at just 41% vs their normal 58%. Fade Vinicius scorer markets.'},
+        {team:'PSG',sc:'red',st:'SUSPENDED',conf:9,rows:[{icon:'SUS',label:'Status',t:'Marquinhos suspended after red card last match.'},{icon:'TGT',label:'Impact',t:'Best CB missing. Back line significantly weakened.'}],
+        trend:{label:'PSG Without Marquinhos -- Ligue 1 3 Seasons',stats:[{n:'33%',l:'WIN RATE',c:'red'},{n:'42%',l:'CLEAN SHEETS',c:'red'},{n:'2.1',l:'GOALS CONCEDED',c:'red'}],bars:[{l:'Win rate WITHOUT Marquinhos',p:33,c:'bar-red'},{l:'Win rate WITH Marquinhos',p:71,c:'bar-green'}],sample:'n=12 Ligue 1 games without Marquinhos'},
+        verdict:'red',vt:'PSG wins just 33% without Marquinhos vs 71% with him. Their defense is severely exposed. Lean opponents or over on goals.'},
+      ],
+      rotation:[
+        {team:'PSG ROTATION',sc:'red',st:'B SQUAD',conf:9,rows:[{icon:'ROT',label:'Confirmed',t:'Manager confirmed rotation ahead of UCL match.'},{icon:'TGT',label:'Impact',t:'Mbappe and Hakimi rested. Full B squad starting.'},{icon:'LNE',label:'Line',t:'PSG opened -200, drifted to -110 on the news.'}],
+        trend:{label:'Top Club UCL Rotation -- Domestic Match After',stats:[{n:'39%',l:'WIN RATE',c:'red'},{n:'37%',l:'ATS COVER',c:'red'},{n:'-0.8',l:'GOAL DIFF',c:'red'}],bars:[{l:'Win rate with B squad',p:39,c:'bar-red'},{l:'Win rate with full squad',p:68,c:'bar-green'}],sample:'n=67 UCL rotation spots last 3 seasons'},
+        verdict:'red',vt:'Clubs rotating for Champions League win just 39% of domestic games. Back the opponent or take the under on goals.'},
+      ],
+      lines:[
+        {team:'ATLETICO ML',sc:'green',st:'SHARP STEAM',conf:8,rows:[{icon:'LNE',label:'Move',t:'ATM vs JUV -- moved from +120 to -105 on sharp.'},{icon:'SHP',label:'Signal',t:'Reverse line movement in a major European match.'}],
+        trend:{label:'Soccer Reverse Line Movement -- Top 5 Leagues',stats:[{n:'61%',l:'SHARP SIDE WINS',c:'green'},{n:'58%',l:'ML PROFIT RATE',c:'green'}],bars:[{l:'Sharp side win rate',p:61,c:'bar-green'},{l:'Public heavy side wins',p:39,c:'bar-red'}],sample:'n=142 RLM spots in top 5 European leagues'},
+        verdict:'green',vt:'Sharp money on soccer wins 61% of the time in European leagues. Atletico at home with sharp backing is a strong play.'},
+      ],
+      weather:[
+        {team:'CHICAGO MLS',sc:'amber',st:'CONDITIONS',conf:7,rows:[{icon:'WX',label:'Conditions',t:'Heavy rain and 20mph wind. Poor pitch conditions.'},{icon:'TGT',label:'Impact',t:'Low-scoring physical game expected all around.'}],
+        trend:{label:'MLS Rain + 15mph+ Wind Games',stats:[{n:'68%',l:'UNDER 2.5 GOALS',c:'green'},{n:'1.4',l:'AVG GOALS',c:'amber'}],bars:[{l:'Under 2.5 goals rate',p:68,c:'bar-green'},{l:'Under 3.5 goals rate',p:81,c:'bar-green'}],sample:'n=48 MLS games with rain and strong wind'},
+        verdict:'amber',vt:'MLS games in rain and wind go under 2.5 goals 68% of the time. Under 2.5 is the clear play tonight.'},
+      ],
+    }
+  },
+  tennis:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'1m',h:'Djokovic retired mid-match -- wrist',b:'Opponent advances. Full bracket reshuffled.'},
+      {type:'warn',tag:'injury',label:'INJ',time:'15m',h:'Swiatek: knee strapping visible in warmup',b:'Trainer attended to her between sets.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'30m',h:'Alcaraz confirmed fit -- no concerns',b:'Full practice session completed this morning.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'DJOKOVIC',sc:'red',st:'RETIRED',conf:10,rows:[{icon:'INJ',label:'Injury',t:'Djokovic retired mid-match -- wrist. Out of tournament.'},{icon:'TGT',label:'Impact',t:'Check if your book offers draw no bet protection.'},{icon:'SHP',label:'Market',t:'Full tournament bracket odds completely reshuffled.'}],
+        trend:{label:'Grand Slam Retirements -- Bracket Impact',stats:[{n:'73%',l:'NEXT DRAW WINS',c:'green'},{n:'+120',l:'AVG ODDS VALUE',c:'green'}],bars:[{l:'Next draw opponent advances',p:73,c:'bar-green'},{l:'Surprise early exit from draw',p:27,c:'bar-red'}],sample:'n=22 Grand Slam retirements tracked'},
+        verdict:'red',vt:'Djokovic out reshuffles everything. Check your book for retirement protection. Next draw beneficiaries gain average +120 value.'},
+        {team:'SWIATEK',sc:'amber',st:'CONCERN',conf:5,rows:[{icon:'INJ',label:'Injury',t:'Knee strapping visible. Trainer attended between sets.'},{icon:'TGT',label:'Impact',t:'Historically fights through knee issues but monitor closely.'}],
+        trend:{label:'Swiatek With Visible Knee Issue During Match',stats:[{n:'56%',l:'WON MATCH',c:'amber'},{n:'44%',l:'LOST 3RD SET',c:'amber'}],bars:[{l:'Won match with knee issue',p:56,c:'bar-amber'},{l:'Set handicap hit rate',p:44,c:'bar-red'}],sample:'n=9 matches with visible knee concern'},
+        verdict:'amber',vt:'Swiatek wins only 56% when showing knee issues. Fade set handicap markets and monitor retirement risk throughout the match.'},
+      ],
+      matchups:[
+        {team:'ALCARAZ',sc:'green',st:'FAVORABLE',conf:7,rows:[{icon:'TGT',label:'Edge',t:'Opponent has losing h2h record on clay -- Alcaraz\'s surface.'},{icon:'TGT',label:'Play',t:'Fully fit, motivated on home surface. All arrows pointing right.'}],
+        trend:{label:'Alcaraz on Clay vs Players With Losing Clay H2H',stats:[{n:'86%',l:'WIN RATE',c:'green'},{n:'91%',l:'HIT SET HDC',c:'green'}],bars:[{l:'Match win rate',p:86,c:'bar-green'},{l:'Won by 2+ sets',p:73,c:'bar-green'}],sample:'n=22 clay matches vs inferior opponents'},
+        verdict:'green',vt:'Alcaraz wins 86% on clay against players with losing clay records. Fully fit makes this one of the safest plays on the board.'},
+      ],
+    }
+  },
+  nascar:{
+    news:[{type:'urgent',tag:'cond',label:'COND',time:'5m',h:'Talladega 500 delayed -- heavy rain',b:'Possible Monday finish. Weather window unclear.'}],
+    intel:{
+      weather:[
+        {team:'TALLADEGA 500',sc:'red',st:'DELAYED',conf:9,rows:[{icon:'WX',label:'Conditions',t:'Heavy rain at Talladega. Delayed indefinitely.'},{icon:'TGT',label:'Impact',t:'Possible Monday finish. Check driver conflicts.'},{icon:'LNE',label:'Markets',t:'Some books now suspending live betting.'}],
+        trend:{label:'Rain-Delayed NASCAR Races at Talladega -- Historical',stats:[{n:'64%',l:'UPSET WINNER',c:'amber'},{n:'3.2x',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Non-favorite wins',p:64,c:'bar-amber'},{l:'Top-10 prerace favorite wins',p:36,c:'bar-red'}],sample:'n=11 rain-delayed Talladega races tracked'},
+        verdict:'amber',vt:'Rain chaos at Talladega produces upset winners 64% of the time. Hold futures bets -- conditions heavily favor longshots over favorites.'},
+      ],
+    }
+  },
+  mma:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'3m',h:'UFC 310: Main event fighter missed weight',b:'Odds swung 180 degrees on the news.'},
+      {type:'warn',tag:'injury',label:'INJ',time:'25m',h:'Co-main: late replacement announced',b:'Original fighter pulled with undisclosed injury.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'UFC 310 MAIN',sc:'red',st:'MISSED WEIGHT',conf:9,rows:[{icon:'INJ',label:'Status',t:'Main event fighter missed weight by 3lbs.'},{icon:'TGT',label:'Impact',t:'Severe cuts lead to gassed performances in late rounds.'},{icon:'LNE',label:'Line',t:'Fighter moved from -220 favorite to +140 underdog.'}],
+        trend:{label:'UFC Fighters Who Missed Weight 2+ Lbs',stats:[{n:'34%',l:'WIN RATE',c:'red'},{n:'71%',l:'LOSE ROUNDS 3+',c:'red'},{n:'58%',l:'OPP WIN RATE',c:'green'}],bars:[{l:'Fighter who missed weight wins',p:34,c:'bar-red'},{l:'Opponent wins',p:58,c:'bar-green'}],sample:'n=87 fighters who missed weight by 2+ lbs'},
+        verdict:'red',vt:'Fighters missing weight by 2+ lbs win just 34% of the time and gas out badly in round 3 and beyond. Fade them in late rounds especially.'},
+        {team:'CO-MAIN EVENT',sc:'red',st:'REPLACEMENT',conf:8,rows:[{icon:'INJ',label:'Status',t:'Original fighter OUT. Late replacement stepped in.'},{icon:'TGT',label:'Impact',t:'Short-notice replacements historically underperform.'},{icon:'SHP',label:'Line',t:'Original was -160 fav. Market fully reset.'}],
+        trend:{label:'Short-Notice UFC Replacements (Under 2 Weeks)',stats:[{n:'36%',l:'WIN RATE',c:'red'},{n:'29-51',l:'ATS RECORD',c:'red'},{n:'+$1,100',l:'PROFIT FADING/100',c:'green'}],bars:[{l:'Replacement fighter wins',p:36,c:'bar-red'},{l:'Original fighter side wins',p:64,c:'bar-green'}],sample:'n=81 short-notice replacements tracked'},
+        verdict:'red',vt:'Short-notice replacements win just 36% of the time at this level. Back the original remaining fighter -- one of the most reliable MMA edges.'},
+      ],
+    }
+  },
+  golf:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'8m',h:'Scheffler WD -- back spasms Round 2',b:'Scottie withdraws. Tournament wide open now.'},
+      {type:'warn',tag:'weather',label:'WTHR',time:'20m',h:'Augusta: 25mph wind rounds 3-4',b:'Scoring will be significantly harder this weekend.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'SCHEFFLER WD',sc:'red',st:'WITHDRAWN',conf:10,rows:[{icon:'INJ',label:'Status',t:'Scheffler withdrawn -- back spasms before Round 2.'},{icon:'TGT',label:'Impact',t:'World #1 out. Outright odds completely reshuffled.'},{icon:'SHP',label:'Market',t:'Rory McIlroy now tournament favorite at +350.'}],
+        trend:{label:'World #1 WD from Major Tournaments -- Historical',stats:[{n:'57%',l:'NON-FAV WINS',c:'amber'},{n:'+280',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Winner was 10-1 or longer',p:57,c:'bar-amber'},{l:'Winner was premarket top-5',p:43,c:'bar-green'}],sample:'n=14 world #1 withdrawals from majors'},
+        verdict:'amber',vt:'When the world #1 withdraws from a major, 57% of winners come at 10-1 or longer. Target 15-1 to 30-1 range for the best value.'},
+      ],
+      weather:[
+        {team:'AUGUSTA R3-R4',sc:'amber',st:'WIND',conf:8,rows:[{icon:'WX',label:'Conditions',t:'25mph sustained wind forecast for weekend rounds.'},{icon:'TGT',label:'Impact',t:'Augusta in wind adds 3-5 strokes to the average score.'},{icon:'TGT',label:'Play',t:'Fade bombers, back accurate ball-strikers.'}],
+        trend:{label:'Augusta With 20mph+ Wind in Weekend Rounds',stats:[{n:'+4.1',l:'STROKES ADDED',c:'red'},{n:'73%',l:'ACCURACY WINS',c:'green'},{n:'21%',l:'DISTANCE WINS',c:'red'}],bars:[{l:'Accurate ball-strikers win',p:73,c:'bar-green'},{l:'Long-drive leaders win',p:21,c:'bar-red'}],sample:'n=10 Augusta weekends with 20mph+ wind'},
+        verdict:'amber',vt:'Augusta wind favors precision over power -- accurate ball-strikers win 73% vs just 21% for long hitters. Adjust all outright picks accordingly.'},
+      ],
+    }
+  },
+  boxing:{
+    news:[
+      {type:'urgent',tag:'injury',label:'INJ',time:'4m',h:'Canelo: hand issue flagged in camp',b:'Odds drifting. Camp denying but worth monitoring closely.'},
+      {type:'warn',tag:'line',label:'LINE',time:'18m',h:'Canelo -380 -> -290 on hand concern',b:'Significant drift. Books repricing the risk.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'35m',h:'Tank Davis confirmed full camp -- no issues',b:'100% healthy. Full training camp completed.'},
+      {type:'warn',tag:'sharp',label:'SHARP',time:'52m',h:'Sharp money on Munguia +290',b:'Reverse line movement. Sharps buying the underdog.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'CANELO',sc:'amber',st:'CONCERN',conf:6,rows:[{icon:'INJ',label:'Injury',t:'Hand issue flagged in training camp. Camp denying severity.'},{icon:'TGT',label:'Impact',t:'Canelo has historically fought through hand issues but performance drops.'},{icon:'LNE',label:'Line Move',t:'Odds drifted from -380 to -290 on the concern.'}],
+        trend:{label:'Canelo With Reported Camp Issues -- Historical',stats:[{n:'67%',l:'WIN RATE',c:'amber'},{n:'-0.8',l:'KD RATE',c:'red'},{n:'+$140',l:'DOG VALUE',c:'green'}],bars:[{l:'Canelo wins with camp issue',p:67,c:'bar-amber'},{l:'Canelo wins fully healthy',p:89,c:'bar-green'}],sample:'n=9 fights with reported camp issues'},
+        verdict:'amber',vt:'Canelo wins 89% healthy but only 67% when camp issues are reported. The underdog gains significant value -- monitor until fight week.'},
+        {team:'TANK DAVIS',sc:'green',st:'FULL GO',conf:9,rows:[{icon:'OK',label:'Status',t:'Tank Davis -- full camp, zero injury concerns reported.'},{icon:'TGT',label:'Impact',t:'Tank at 100% is one of the most dangerous fighters in boxing.'}],
+        trend:{label:'Tank Davis Full Camp vs Reported Issues',stats:[{n:'89%',l:'WIN RATE',c:'green'},{n:'71%',l:'KO RATE',c:'green'}],bars:[{l:'Win rate full camp',p:89,c:'bar-green'},{l:'KO or TKO finish',p:71,c:'bar-green'}],sample:'n=27 professional fights tracked'},
+        verdict:'green',vt:'Tank fully healthy is an elite play. 71% KO rate means round betting props have massive value -- lean early rounds.'},
+      ],
+      lines:[
+        {team:'CANELO vs MUNGUIA',sc:'red',st:'SHARP FADE',conf:8,rows:[{icon:'LNE',label:'Move',t:'Canelo drifted from -380 to -290 on camp injury news.'},{icon:'SHP',label:'Sharp $',t:'Sharps loading Munguia +290 -- reverse line movement confirmed.'}],
+        trend:{label:'Boxing Reverse Line Movement Pre-Fight',stats:[{n:'61%',l:'UNDERDOG WINS',c:'green'},{n:'+$890',l:'PROFIT/100',c:'green'}],bars:[{l:'Underdog win rate on RLM',p:61,c:'bar-green'},{l:'Favorite wins on RLM',p:39,c:'bar-red'}],sample:'n=44 boxing RLM spots tracked'},
+        verdict:'amber',vt:'When sharp money moves a boxing line this significantly pre-fight, the underdog wins 61% of the time. Munguia +290 has real value here.'},
+      ],
+      sharp:[
+        {team:'MUNGUIA +290',sc:'green',st:'STEAM',conf:7,rows:[{icon:'SHP',label:'Sharp $',t:'Multiple sharp groups confirmed on Munguia ML.'},{icon:'LNE',label:'Move',t:'Line moved 90 points in Munguia favor on sharp action.'}],
+        trend:{label:'Boxing Sharp Underdog Plays -- Last 3 Years',stats:[{n:'58%',l:'WIN RATE',c:'green'},{n:'+$1,140',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp underdog wins',p:58,c:'bar-green'},{l:'Heavy favorite wins',p:42,c:'bar-red'}],sample:'n=67 sharp boxing underdog plays'},
+        verdict:'green',vt:'Sharp underdogs in boxing win 58% of the time. Combined with the camp injury concern, Munguia +290 is a strong play.'},
+      ],
+      matchups:[
+        {team:'STYLE EDGE',sc:'amber',st:'WATCH',conf:6,rows:[{icon:'TGT',label:'Edge',t:'Munguia has 4-inch reach advantage and fights at higher volume.'},{icon:'TGT',label:'Play',t:'If Canelo hand limits his power, Munguia volume style becomes dangerous.'}],
+        trend:{label:'Canelo vs High-Volume Fighters -- Historical',stats:[{n:'72%',l:'WIN RATE',c:'amber'},{n:'4.2',l:'AVG ROUNDS',c:'amber'}],bars:[{l:'Canelo wins vs high volume',p:72,c:'bar-amber'},{l:'Goes distance vs high volume',p:58,c:'bar-amber'}],sample:'n=11 fights vs high-volume opponents'},
+        verdict:'amber',vt:'Canelo struggles more against high-volume opponents. With a hand concern this matchup gets even more interesting -- monitor fight week closely.'},
+      ],
+    }
+  },
+  f1:{
+    news:[
+      {type:'urgent',tag:'injury',label:'PEN',time:'6m',h:'Verstappen: 5-place grid penalty -- Monaco',b:'Gearbox change confirmed. Starts P6 from P1 qualifying.'},
+      {type:'warn',tag:'weather',label:'WTHR',time:'14m',h:'Monaco race: rain forecast Sunday morning',b:'Wet conditions could completely reshape the grid.'},
+      {type:'ok',tag:'lineup',label:'LINEUP',time:'28m',h:'Leclerc confirmed fit -- home race motivation',b:'Charles fully healthy for his home grand prix.'},
+      {type:'warn',tag:'line',label:'LINE',time:'41m',h:'Norris race winner odds drifting shorter',b:'Sharp money backing Norris on dry setup pace.'},
+    ],
+    intel:{
+      injuries:[
+        {team:'VERSTAPPEN PEN',sc:'red',st:'GRID PENALTY',conf:10,rows:[{icon:'INJ',label:'Penalty',t:'5-place grid penalty for gearbox change. Starts P6.'},{icon:'TGT',label:'Impact',t:'Monaco is the hardest circuit to overtake. Starting P6 massively hurts win chances.'},{icon:'LNE',label:'Odds',t:'Verstappen race win odds moved from -140 to +180 on penalty news.'}],
+        trend:{label:'F1 Grid Penalties at Monaco -- Historical',stats:[{n:'12%',l:'WIN RATE P6+',c:'red'},{n:'71%',l:'P1-3 WIN RATE',c:'green'},{n:'+$340',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Win rate starting P1-3',p:71,c:'bar-green'},{l:'Win rate starting P6+',p:12,c:'bar-red'}],sample:'n=43 Monaco races with grid penalties'},
+        verdict:'red',vt:'Starting P6 at Monaco gives just a 12% win rate historically. Verstappen race win is a strong fade -- look elsewhere for value.'},
+        {team:'LECLERC',sc:'green',st:'MOTIVATED',conf:8,rows:[{icon:'OK',label:'Status',t:'Charles Leclerc -- fully fit, racing at his home grand prix.'},{icon:'TGT',label:'Edge',t:'Leclerc has taken pole at Monaco 3 of the last 4 years.'},{icon:'TGT',label:'Impact',t:'Home crowd, circuit knowledge, and Ferrari pace all align.'}],
+        trend:{label:'Leclerc at Monaco -- Last 5 Seasons',stats:[{n:'75%',l:'POLE RATE',c:'green'},{n:'3.1',l:'AVG FINISH',c:'green'},{n:'+180',l:'CURRENT ODDS',c:'green'}],bars:[{l:'Podium finish rate',p:67,c:'bar-green'},{l:'Pole position rate',p:75,c:'bar-green'}],sample:'n=5 Monaco GP starts for Leclerc'},
+        verdict:'green',vt:'Leclerc at Monaco is one of the most reliable plays in F1. 75% pole rate and strong race pace at his home circuit -- strong value at +180.'},
+      ],
+      weather:[
+        {team:'MONACO RACE',sc:'red',st:'RAIN RISK',conf:7,rows:[{icon:'WX',label:'Forecast',t:'Rain forecast Sunday morning -- race start 9:00 AM local.'},{icon:'TGT',label:'Impact',t:'Wet Monaco is pure chaos. Backmarkers can win in safety car sequences.'},{icon:'LNE',label:'Markets',t:'Longshot race winner odds have shortened significantly on rain forecast.'}],
+        trend:{label:'Wet Monaco Grand Prix Races -- Historical',stats:[{n:'43%',l:'NON-FAVORITE WINS',c:'amber'},{n:'2.8',l:'SAFETY CARS AVG',c:'amber'},{n:'+$420',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Non-favorite wins in wet',p:43,c:'bar-amber'},{l:'Pole sitter wins in wet',p:31,c:'bar-red'}],sample:'n=14 wet or mixed Monaco races'},
+        verdict:'amber',vt:'Wet Monaco produces massive upsets -- non-favorites win 43% of the time. Longshot each-way bets have strong historical value in these conditions.'},
+      ],
+      lines:[
+        {team:'NORRIS RACE WIN',sc:'green',st:'SHORTENING',conf:7,rows:[{icon:'LNE',label:'Move',t:'Norris race win odds moved from +320 to +210 on sharp action.'},{icon:'SHP',label:'Sharp $',t:'McLaren dry pace data from practice has sharp money confident.'}],
+        trend:{label:'Sharp F1 Race Winner Pre-Race -- This Season',stats:[{n:'54%',l:'WIN RATE',c:'green'},{n:'+$680',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp-backed driver wins',p:54,c:'bar-green'},{l:'Public-backed favorite wins',p:46,c:'bar-amber'}],sample:'n=7 F1 races this season with sharp movement'},
+        verdict:'green',vt:'Sharp money on F1 race winners has hit 54% this season. Norris at +210 with strong pace data and Verstappen penalized is legitimate value.'},
+      ],
+      matchups:[
+        {team:'HAMILTON vs RUSSELL',sc:'amber',st:'WATCH',conf:5,rows:[{icon:'TGT',label:'Matchup',t:'Internal Mercedes battle -- Russell qualified P3, Hamilton P7.'},{icon:'TGT',label:'Play',t:'Russell head-to-head vs Hamilton is a strong prop bet this weekend.'}],
+        trend:{label:'Russell vs Hamilton H2H at Street Circuits',stats:[{n:'64%',l:'RUSSELL WINS H2H',c:'green'},{n:'71%',l:'BEATS QUALI POS',c:'green'}],bars:[{l:'Russell beats Hamilton H2H',p:64,c:'bar-green'},{l:'Russell improves on qualifying',p:71,c:'bar-green'}],sample:'n=11 street circuit H2H battles this season'},
+        verdict:'green',vt:'Russell beats Hamilton head-to-head 64% of the time at street circuits and tends to outperform his qualifying position. Strong H2H prop value.'},
+      ],
+    }
+  },
+};
+
+// --- STATE ---
+let sport='nfl', itab='injuries', league='epl', filter='all';
+let chatHistory=[], chatBusy=false, inited=false;
+
+// --- SPORT TABS ---
+function buildSportBar(){
+  document.getElementById('sportBar').innerHTML=SPORTS.map(s=>`
+    <div class="sp-tab ${s.id===sport?'active':''}" onclick="setSport('${s.id}',this)">
+      ${s.label} <span class="sp-count">${s.count}</span>
+    </div>`).join('');
+}
+
+function setSport(s,el){
+  sport=s; itab='injuries'; filter='all';
+  document.querySelectorAll('.sp-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderAll();
+}
+
+// --- SCHEDULE ---
+function renderSchedule(){
+  const games=SCHEDS[sport]||[];
+  document.getElementById('schedule').innerHTML=games.map(g=>`
+    <div class="sched-game">
+      ${g.live?`<span class="sched-live">LIVE</span>`:''}
+      <span class="sched-teams">${g.t}</span>
+      <span class="sched-time">${g.time}</span>
+      ${g.a?`<span class="sched-alert"></span>`:''}
+    </div>`).join('')||'<span style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:0 12px">No games today</span>';
+}
+
+// --- NEWS ---
+function renderNews(){
+  const news=DATA[sport]?.news||[];
+  const tags=['all',...new Set(news.map(n=>n.tag))];
+  document.getElementById('filters').innerHTML=tags.map(t=>`
+    <div class="filter-btn ${filter===t?'on':''}" onclick="setFilter('${t}')">${FMAP[t]||t.toUpperCase()}</div>`).join('');
+  const items=filter==='all'?news:news.filter(n=>n.tag===filter);
+  document.getElementById('feed').innerHTML=items.map(n=>`
+    <div class="feed-item ${n.type}">
+      <div class="fi-meta"><span class="fi-tag tag-${n.tag}">${n.label}</span><span class="fi-time">${n.time} ago</span></div>
+      <div class="fi-headline">${n.h}</div>
+      <div class="fi-body">${n.b}</div>
+    </div>`).join('')||'<div style="padding:14px;color:var(--text3);font-size:11px;text-align:center;font-family:var(--mono)">No alerts in this category</div>';
+}
+
+function setFilter(f){ filter=f; renderNews(); }
+
+// --- INTEL TABS ---
+function renderIntelTabs(){
+  document.getElementById('intelBar').innerHTML=ITABS.map(t=>`
+    <div class="ib-tab ${itab===t.id?'active':''}" onclick="setItab('${t.id}',this)">
+      <span class="tab-badge">${t.icon}</span>${t.label}
+    </div>`).join('');
+  const lb=document.getElementById('leagueBar');
+  if(sport==='soccer'){
+    lb.style.display='flex';
+    lb.innerHTML=LEAGUES.map(l=>`
+      <div class="lb-btn ${league===l.id?'active':''}" onclick="setLeague('${l.id}',this)">${l.flag} ${l.label}</div>`).join('');
+  } else { lb.style.display='none'; }
+}
+
+function setItab(id,el){
+  itab=id;
+  document.querySelectorAll('.ib-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderCards();
+}
+
+function setLeague(id,el){
+  league=id;
+  document.querySelectorAll('.lb-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// --- SVG ICON SYSTEM ---
+// Clean single-stroke SVG icons -- no emojis anywhere
+const ICONS = {
+  // Card row icons
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h1a2 2 0 0 1 2 2v.5a2 2 0 0 0 2 2H14a2 2 0 0 1 2 2V13a2 2 0 0 1-2 2h-.5a2 2 0 0 0-2 2V18"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v2m0 8v2M9 9.5C9 8.1 10.3 7 12 7s3 1.1 3 2.5c0 2.5-6 2.5-6 5C9 15.9 10.3 17 12 17s3-1.1 3-2.5"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V7H2Z"/><path d="M6 11h2M11 11h2M16 11h2"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8M12 3v4"/></svg>`,
+  '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`,
+  // Intel tab icons
+  ' Injuries':   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>`,
+  ' Lines':      `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  ' Sharp $':    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v2m0 8v2M9.5 9.5C9.5 8.1 10.6 7 12 7s2.5 1.1 2.5 2.5c0 2.5-5 2.5-5 5C9.5 15.9 10.6 17 12 17s2.5-1.1 2.5-2.5"/></svg>`,
+  ' Weather':   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
+  ' Fatigue':    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="16 5 12 9 8 5"/></svg>`,
+  ' Revenge':    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  ' Matchups':   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  ' Suspensions':`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M12 8v4M12 16h.01"/></svg>`,
+  ' Rotation':   `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`,
+};
+
+// News feed tag icons
+const TAG_ICONS = {
+  injury:  `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>`,
+  line:    `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  sharp:   `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v2m0 8v2M9.5 9.5C9.5 8.1 10.6 7 12 7s2.5 1.1 2.5 2.5c0 2.5-5 2.5-5 5C9.5 15.9 10.6 17 12 17s2.5-1.1 2.5-2.5"/></svg>`,
+  weather: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>`,
+  lineup:  `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  revenge: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  fatigue: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="9" x2="12" y2="2"/><line x1="23" y1="22" x2="1" y2="22"/></svg>`,
+  susp:    `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M12 8v4M12 16h.01"/></svg>`,
+  rot:     `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.75-6.75L21 8M21 3v5h-5"/><path d="M21 12A9 9 0 0 1 5.25 18.75L3 16M3 21v-5h5"/></svg>`,
+  cond:    `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`,
+};
+
+function getIcon(code) {
+  return `<span class="mono-badge">${code}</span>`;
+}
+
+// --- TREND BOX ---
+function buildTrend(tr){
+  if(!tr)return '';
+  const sc=tr.stats.map(s=>`
+    <div>
+      <div class="tb-stat-num color-${s.c}">${s.n}</div>
+      <div class="tb-stat-label">${s.l}</div>
+    </div>`).join('');
+  const bars=tr.bars.map(b=>`
+    <div class="tb-bar-row">
+      <div class="tb-bar-lbl">${b.l}</div>
+      <div class="tb-bar-outer"><div class="tb-bar-inner ${b.c}" style="width:${b.p}%"></div></div>
+      <div class="tb-pct color-${b.c.replace('bar-','')} ">${b.p}%</div>
+    </div>`).join('');
+  return `
+    <div class="trend-box">
+      <div class="tb-label"><span class="tb-icon">TREND</span>${tr.label}</div>
+      <div class="tb-stats">${sc}</div>
+      ${bars}
+      <div class="tb-sample">${tr.sample}</div>
+    </div>`;
+}
+
+// --- CARDS ---
+const VC={green:'v-green',red:'v-red',amber:'v-amber'};
+const SC={green:'dot-green color-green',red:'dot-red color-red',amber:'dot-amber color-amber'};
+const CC={green:'conf-high',red:'conf-low',amber:'conf-med'};
+const CF={green:'bar-green',red:'bar-red',amber:'bar-amber'};
+
+function renderCards(){
+  const body=document.getElementById('intelBody');
+  const cards=DATA[sport]?.intel?.[itab]||[];
+  const ln=sport==='soccer'?` -- ${LEAGUES.find(l=>l.id===league)?.label||''}`:'';
+
+  if(!cards.length){
+    body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center"><div style="font-size:28px;opacity:0.15">--</div>No ${itab} alerts for ${sport.toUpperCase()}${ln} right now</div>`;
+    return;
+  }
+
+  body.innerHTML=`
+    <div class="intel-section-label">${sport.toUpperCase()}${ln} . ${itab.toUpperCase()}</div>
+    <div class="cards-grid">
+      ${cards.map(c=>`
+        <div class="i-card">
+          <div class="i-card-top">
+            <div class="i-team">${c.team}</div>
+            <div class="i-card-right">
+              <div class="i-status ${SC[c.sc]||'dot-amber color-amber'}">
+                <div class="i-dot"></div>${c.st}
+              </div>
+              <div class="i-conf">
+                <div class="i-conf-bar"><div class="i-conf-fill ${CF[c.sc]||'bar-amber'}" style="width:${c.conf*10}%"></div></div>
+                CONF ${c.conf}/10
+              </div>
+            </div>
+          </div>
+          <div class="i-card-body">
+            ${(c.rows||[]).map(r=>`
+              <div class="i-row">
+                <div class="i-icon">${getIcon(r.icon)}</div>
+                <div><div class="i-row-label">${r.label}</div><div class="i-row-text">${r.t}</div></div>
+              </div>`).join('')}
+          </div>
+          ${buildTrend(c.trend)}
+          <div class="i-verdict ${VC[c.verdict]||'v-amber'}">${c.vt}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// --- CHAT ---
+const CHAT_SYS=`You are Scout, an elite sports intelligence AI. You know every sport in the world -- American football, basketball, baseball, hockey, soccer, tennis, golf, MMA, boxing, rugby, cricket, Formula 1, NASCAR, cycling, athletics, swimming, esports, volleyball, handball, snooker, darts, and any other sport a user asks about. You have deep knowledge of teams, players, injuries, betting lines, historical trends, cover rates, ATS records, and statistics across all sports globally. Be direct, sharp and concise. Answer in 2-4 sentences max with real data and opinions. Never say you cannot help with a sport -- you cover everything.`;
+
+function onChatKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } }
+
+function bubble(text,type){
+  const el=document.getElementById('chatMsgs');
+  const d=document.createElement('div');
+  d.className=`msg ${type}`;
+  d.innerHTML=text;
+  el.appendChild(d);
+  el.scrollTop=99999;
+  return d;
+}
+
+async function sendMsg(){
+  const field=document.getElementById('chatField');
+  const text=field.value.trim();
+  if(!text||chatBusy)return;
+  chatBusy=true;
+  document.getElementById('chatBtn').disabled=true;
+  field.value='';
+  bubble(text,'user');
+  const dots=document.createElement('div');
+  dots.className='thinking';
+  dots.innerHTML='<span></span><span></span><span></span>';
+  document.getElementById('chatMsgs').appendChild(dots);
+  document.getElementById('chatMsgs').scrollTop=99999;
+  chatHistory.push({role:'user',content:`[Viewing: ${sport.toUpperCase()} ${itab}${sport==='soccer'?' -- '+league:''}] ${text}`});
+  try{
+    const res=await fetch('https://scout-chat.felipestinchi17.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5-20251001',max_tokens:1000,system:CHAT_SYS,messages:chatHistory})
+    });
+    const text=await res.text();
+    let reply='';
+    try{
+      const data=JSON.parse(text);
+      if(data.content) reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+      else if(data.error) reply='Error: '+data.error.message;
+      else reply=text;
+    }catch(pe){ reply=text; }
+    chatHistory.push({role:'assistant',content:reply||'--'});
+    dots.remove();
+    bubble(reply||'No response received.','bot');
+  } catch(e){
+    dots.remove();
+    bubble('Connection error: '+e.message,'bot');
+  }
+  chatBusy=false;
+  document.getElementById('chatBtn').disabled=false;
+  field.focus();
+}
+
+// --- INIT ---
+// Live data cache
+let liveCache = {};
+
+async function renderAll(){
+  renderSchedule();
+  renderNews();
+  renderIntelTabs();
+  renderCards();
+  // Kick off live data fetch in background
+  fetchAndMerge();
+}
+
+// Fetch live data and merge into the UI when ready
+async function fetchAndMerge(){
+  const cacheKey = sport + '-' + itab + '-' + league;
+  if(liveCache[cacheKey]) return; // already fetched this session
+
+  try {
+    const live = await loadLiveData(sport, itab, league);
+    liveCache[cacheKey] = live;
+
+    // If we got live schedule data, update the strip
+    if(live.schedule && live.schedule.length > 0){
+      renderScheduleFromLive(live.schedule);
+    }
+
+    // If we got live news, prepend to the feed AND replace injury cards
+    if(live.news && live.news.length > 0){
+      prependLiveNews(live.news);
+      // If we are on injuries tab and have real injury news, replace the cards
+      if(itab === 'injuries' && live.news.filter(n=>n.tag==='injury').length > 0){
+        renderLiveInjuryCards(live.news.filter(n=>n.tag==='injury'));
+      }
+    }
+
+    // If we got live cards (odds), replace the intel content
+    if(live.cards && live.cards.length > 0 && (itab === 'lines' || itab === 'odds')){
+      renderLiveCards(live.cards);
+    }
+  } catch(e){ console.warn('Live data merge error:', e); }
+}
+
+function renderLiveInjuryCards(injuryNews){
+  const body = document.getElementById('intelBody');
+  if(!body || !injuryNews.length) return;
+  const VC = {green:'v-green', red:'v-red', amber:'v-amber'};
+  const ln = sport==='soccer' ? ` -- ${LEAGUES.find(l=>l.id===league)?.label||''}` : '';
+  body.innerHTML = `
+    <div class="intel-section-label">${sport.toUpperCase()}${ln} . INJURIES - LIVE</div>
+    <div class="cards-grid">
+      ${injuryNews.map(n => `
+        <div class="i-card">
+          <div class="i-card-top">
+            <div class="i-team">${n.h.split(':')[0] || n.h}</div>
+            <div class="i-card-right">
+              <div class="i-status ${n.type==='urgent' ? 'dot-red color-red' : 'dot-amber color-amber'}">
+                <div class="i-dot"></div>${n.type==='urgent' ? 'OUT' : 'QUESTIONABLE'}
+              </div>
+            </div>
+          </div>
+          <div class="i-card-body">
+            <div class="i-row">
+              <div class="i-icon"><span class="mono-badge">INJ</span></div>
+              <div><div class="i-row-label">INJURY</div><div class="i-row-text">${n.h}</div></div>
+            </div>
+            <div class="i-row">
+              <div class="i-icon"><span class="mono-badge">TGT</span></div>
+              <div><div class="i-row-label">IMPACT</div><div class="i-row-text">${n.b || 'Monitor practice reports'}</div></div>
+            </div>
+          </div>
+          <div class="i-verdict v-amber">Live injury report. Check official team injury report for betting decisions.</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderScheduleFromLive(games){
+  const el = document.getElementById('schedule');
+  if(!el || !games.length) return;
+  const liveHtml = games.map(g => `
+    <div class="sched-game">
+      ${g.live ? '<span class="sched-live">LIVE</span>' : ''}
+      <span class="sched-teams">${g.t}</span>
+      <span class="sched-time">${g.time}</span>
+      ${g.a ? '<span class="sched-alert">!</span>' : ''}
+    </div>`).join('');
+  // Prepend live games before sample data
+  el.innerHTML = liveHtml + el.innerHTML;
+}
+
+function prependLiveNews(newsItems){
+  const feed = document.getElementById('feed');
+  if(!feed) return;
+  const liveHtml = newsItems.map(n => `
+    <div class="feed-item ${n.type}">
+      <div class="fi-meta">
+        <span class="fi-tag tag-${n.tag}">${n.label}</span>
+        <span class="fi-time" style="color:var(--green)">LIVE</span>
+      </div>
+      <div class="fi-headline">${n.h}</div>
+      <div class="fi-body">${n.b}</div>
+    </div>`).join('');
+  feed.innerHTML = liveHtml + feed.innerHTML;
+}
+
+function renderLiveCards(cards){
+  const body = document.getElementById('intelBody');
+  if(!body) return;
+  const VC = {green:'v-green', red:'v-red', amber:'v-amber'};
+  const SC = {green:'dot-green color-green', red:'dot-red color-red', amber:'dot-amber color-amber'};
+  const CF = {green:'bar-green', red:'bar-red', amber:'bar-amber'};
+  body.innerHTML = `
+    <div class="intel-section-label">${sport.toUpperCase()} - LIVE ODDS - ${new Date().toLocaleTimeString()}</div>
+    <div class="cards-grid">
+      ${cards.map(c => `
+        <div class="i-card">
+          <div class="i-card-top">
+            <div class="i-team">${c.team}</div>
+            <div class="i-card-right">
+              <div class="i-status ${SC[c.sc] || 'dot-green color-green'}">
+                <div class="i-dot"></div>${c.st}
+              </div>
+            </div>
+          </div>
+          <div class="i-card-body">
+            ${(c.rows||[]).map(r => `
+              <div class="i-row">
+                <div class="i-icon"><span class="mono-badge">${r.icon}</span></div>
+                <div><div class="i-row-label">${r.label}</div><div class="i-row-text">${r.t}</div></div>
+              </div>`).join('')}
+          </div>
+          ${c.trend ? buildTrend(c.trend) : ''}
+          <div class="i-verdict ${VC[c.verdict] || 'v-green'}">${c.vt}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function initDash(){
+  if(inited)return;
+  inited=true;
+  buildTicker();
+  buildSportBar();
+  renderAll();
+  tick();
+  // Auto refresh live data every 5 minutes
+  setInterval(() => { liveCache = {}; fetchAndMerge(); }, 5 * 60 * 1000);
+}
+
+// Hash-based routing — if URL ends with #app show dashboard automatically
+window.addEventListener('DOMContentLoaded', () => {
+  if(window.location.hash === '#app'){
+    document.getElementById('landingPage').style.display = 'none';
+    const dp = document.getElementById('dashboardPage');
+    dp.style.display = 'flex';
+    initDash();
+  }
+});
+
+// Also handle if someone navigates to #app after page loads
+window.addEventListener('hashchange', () => {
+  if(window.location.hash === '#app'){
+    document.getElementById('landingPage').style.display = 'none';
+    const dp = document.getElementById('dashboardPage');
+    dp.style.display = 'flex';
+    initDash();
+  } else {
+    document.getElementById('dashboardPage').style.display = 'none';
+    document.getElementById('landingPage').style.display = 'flex';
+  }
+});
+</script>
+</body>
+</html>
