@@ -55,7 +55,7 @@ body::after {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    LANDING PAGE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-#landingPage { min-height: 100vh; display: flex; flex-direction: column; }
+#landingPage { min-height: 100vh; display: var(--landing-display, flex); flex-direction: column; }
 
 /* NAV */
 .nav {
@@ -1284,6 +1284,12 @@ footer {
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
 </style>
+<script>
+// Run immediately before page renders to prevent flash
+if(window.location.hash === '#app') {
+  document.documentElement.style.setProperty('--landing-display', 'none');
+}
+</script>
 </head>
 <body>
 
@@ -1828,6 +1834,7 @@ function parseESPNNews(data) {
       h: headline.substring(0,70) || 'Breaking news',
       b: desc.substring(0,100) || '',
       live: true,
+      fetchedAt: Date.now(),
     };
   });
 }
@@ -1950,6 +1957,7 @@ async function loadLiveData(sport, tab, league) {
               h: headline.substring(0, 70),
               b: desc.substring(0, 100),
               live: true,
+              fetchedAt: Date.now(),
             });
           }
         });
@@ -2399,21 +2407,20 @@ function setSport(s,el){
   sport=s; itab='injuries'; filter='all'; league='epl';
   document.querySelectorAll('.sp-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  // Snapshot current sport/tab so async operations don't overwrite
-  const thisSport = s;
-  renderAll(thisSport);
+  renderAll(s);
 }
 
 // --- SCHEDULE ---
 function renderSchedule(){
   const games=SCHEDS[sport]||[];
+  // Show skeleton while waiting for live data
   document.getElementById('schedule').innerHTML=games.map(g=>`
     <div class="sched-game">
       ${g.live?`<span class="sched-live">LIVE</span>`:''}
       <span class="sched-teams">${g.t}</span>
       <span class="sched-time">${g.time}</span>
       ${g.a?`<span class="sched-alert"></span>`:''}
-    </div>`).join('')||'<span style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:0 12px">No games today</span>';
+    </div>`).join('')||'<span style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:0 12px;opacity:0.4">Loading...</span>';
 }
 
 // --- NEWS ---
@@ -2423,12 +2430,18 @@ function renderNews(){
   document.getElementById('filters').innerHTML=tags.map(t=>`
     <div class="filter-btn ${filter===t?'on':''}" onclick="setFilter('${t}')">${FMAP[t]||t.toUpperCase()}</div>`).join('');
   const items=filter==='all'?news:news.filter(n=>n.tag===filter);
+  // Show skeleton rows while waiting for live data to load
+  const skeletonRow = `<div style="padding:14px 16px;border-bottom:1px solid var(--line);opacity:0.15">
+    <div style="height:8px;background:var(--text3);border-radius:3px;width:40%;margin-bottom:8px"></div>
+    <div style="height:10px;background:var(--text3);border-radius:3px;width:85%;margin-bottom:5px"></div>
+    <div style="height:8px;background:var(--text3);border-radius:3px;width:65%"></div>
+  </div>`;
   document.getElementById('feed').innerHTML=items.map(n=>`
     <div class="feed-item ${n.type}">
       <div class="fi-meta"><span class="fi-tag tag-${n.tag}">${n.label}</span><span class="fi-time">${n.time} ago</span></div>
       <div class="fi-headline">${n.h}</div>
       <div class="fi-body">${n.b}</div>
-    </div>`).join('')||'<div style="padding:14px;color:var(--text3);font-size:11px;text-align:center;font-family:var(--mono)">No alerts in this category</div>';
+    </div>`).join('')||(skeletonRow+skeletonRow+skeletonRow);
 }
 
 function setFilter(f){ filter=f; renderNews(); }
@@ -2452,7 +2465,7 @@ function setItab(id,el){
   document.querySelectorAll('.ib-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderCards();
-  // Fetch fresh data for this tab if not cached
+  // Fetch fresh ESPN/odds data for this tab if not cached
   const cacheKey = sport + '-' + itab + '-' + league;
   if(!isCacheValid(cacheKey)) fetchAndMerge();
 }
@@ -2461,6 +2474,10 @@ function setLeague(id,el){
   league=id;
   document.querySelectorAll('.lb-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  // Clear cache for new league and reload
+  const keysToDelete = Object.keys(liveCache).filter(k => k.includes('soccer'));
+  keysToDelete.forEach(k => { delete liveCache[k]; delete liveCacheTimestamps[k]; });
+  renderAll('soccer');
 }
 
 // --- SVG ICON SYSTEM ---
@@ -2650,27 +2667,112 @@ Rules: sc/verdict=green|red|amber. conf=1-10. icon=INJ|TGT|LNE|SHP|WX|FAT|RVNG|O
 async function renderAICards(sportName, tabName, leagueName) {
   const body = document.getElementById('intelBody');
   const ln = sportName === 'soccer' ? ` -- ${LEAGUES.find(l => l.id === leagueName)?.label || ''}` : '';
+  const key = `${sportName}-${tabName}-${leagueName}`;
 
-  // Show loading state
-  body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px">
-    <div style="display:flex;gap:4px">
-      <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span>
-      <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span>
-      <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span>
-    </div>
-    <div>Scout is analyzing ${sportName.toUpperCase()}${ln} ${tabName.toUpperCase()}...</div>
-  </div>`;
+  // Check if we have cached cards first
+  const cacheKey = `ai-${sportName}-${tabName}-${leagueName}`;
+  if(isAiCacheValid(cacheKey)) {
+    const cached = getAiCache(cacheKey);
+    if(cached) { renderAICardList(cached, sportName, tabName, leagueName); return; }
+  }
 
-  const cards = await generateAICards(sportName, tabName, leagueName);
-
-  if(!cards || !cards.length) {
-    body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
-      <div style="font-size:28px;opacity:0.15">--</div>
-      <div>Could not generate ${tabName} analysis for ${sportName.toUpperCase()}${ln}.</div>
-      <button onclick="renderAICards('${sportName}','${tabName}','${leagueName}')" style="background:var(--green);color:#000;border:none;padding:8px 16px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em">RETRY</button>
+  // If currently loading in background, show loading state
+  if(aiLoadingTabs.has(key)) {
+    body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px">
+      <div style="display:flex;gap:4px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span>
+      </div>
+      <div>Still analyzing ${sportName.toUpperCase()}${ln} ${tabName.toUpperCase()}...</div>
+      <div style="font-size:10px;color:var(--text3)">Results will appear when ready</div>
     </div>`;
+    // Poll every 2 seconds to check if done
+    setTimeout(() => { if(sport===sportName && itab===tabName) renderAICards(sportName, tabName, leagueName); }, 2000);
     return;
   }
+
+  // Show analyze button
+  body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:14px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
+    <div style="font-size:13px;color:var(--text2);font-family:var(--sans);font-weight:500">${sportName.toUpperCase()}${ln} — ${tabName.toUpperCase()}</div>
+    <div style="font-size:11px;color:var(--text3);max-width:220px;line-height:1.6">AI-powered analysis using historical betting data</div>
+    <button onclick="startAIAnalysis('${sportName}','${tabName}','${leagueName}')" style="background:var(--green);color:#000;border:none;padding:10px 24px;border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.08em;display:flex;align-items:center;gap:8px">
+      ◆ ANALYZE WITH SCOUT AI
+    </button>
+    <div style="font-size:10px;color:var(--text3)">Results cached for 24 hours</div>
+  </div>`;
+}
+
+// Track which tabs are currently loading in the background
+const aiLoadingTabs = new Set();
+
+async function startAIAnalysis(sportName, tabName, leagueName) {
+  const key = `${sportName}-${tabName}-${leagueName}`;
+  const ln = sportName === 'soccer' ? ` -- ${LEAGUES.find(l => l.id === leagueName)?.label || ''}` : '';
+
+  // If already loading this tab in background, just show the loading spinner
+  if(aiLoadingTabs.has(key)) {
+    const body = document.getElementById('intelBody');
+    if(sport === sportName && itab === tabName) {
+      body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px">
+        <div style="display:flex;gap:4px">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span>
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span>
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span>
+        </div>
+        <div>Still analyzing ${sportName.toUpperCase()}${ln} ${tabName.toUpperCase()}...</div>
+        <div style="font-size:10px;color:var(--text3)">Come back in a few seconds</div>
+      </div>`;
+    }
+    return;
+  }
+
+  // Show loading on current view
+  const body = document.getElementById('intelBody');
+  if(sport === sportName && itab === tabName) {
+    body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px">
+      <div style="display:flex;gap:4px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span>
+      </div>
+      <div>Analyzing ${sportName.toUpperCase()}${ln} ${tabName.toUpperCase()}...</div>
+      <div style="font-size:10px;color:var(--text3)">You can browse other tabs — results save automatically</div>
+    </div>`;
+  }
+
+  // Mark as loading and run in background
+  aiLoadingTabs.add(key);
+  const cards = await generateAICards(sportName, tabName, leagueName);
+  aiLoadingTabs.delete(key);
+
+  if(!cards || !cards.length) {
+    // If user is still on this tab, show error
+    if(sport === sportName && itab === tabName) {
+      document.getElementById('intelBody').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
+        <div style="font-size:28px;opacity:0.15">--</div>
+        <div>Could not generate analysis. Check your Anthropic credits.</div>
+        <button onclick="startAIAnalysis('${sportName}','${tabName}','${leagueName}')" style="background:var(--green);color:#000;border:none;padding:8px 16px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em">RETRY</button>
+      </div>`;
+    }
+    return;
+  }
+
+  // Cards are ready - if user is back on this tab, show them
+  // If not, they're cached so will show instantly when they return
+  if(sport === sportName && itab === tabName) {
+    renderAICardList(cards, sportName, tabName, leagueName);
+  }
+}
+
+function renderAICardList(cards, sportName, tabName, leagueName) {
+  // Guard: only render if still on same sport/tab
+  if(sport !== sportName || itab !== tabName) return;
+
+  const body = document.getElementById('intelBody');
+  const ln = sportName === 'soccer' ? ` -- ${LEAGUES.find(l => l.id === leagueName)?.label || ''}` : '';
+
+  if(!cards || !cards.length) {
 
   // Render the AI-generated cards using the same card renderer
   const VC = {green:'v-green',red:'v-red',amber:'v-amber'};
@@ -2707,6 +2809,7 @@ async function renderAICards(sportName, tabName, leagueName) {
     </div>`;
 }
 
+}
 // --- CHAT ---
 const CHAT_SYS=`You are Scout, an elite sports intelligence AI. You know every sport in the world -- American football, basketball, baseball, hockey, soccer, tennis, golf, MMA, boxing, rugby, cricket, Formula 1, NASCAR, cycling, athletics, swimming, esports, volleyball, handball, snooker, darts, and any other sport a user asks about. You have deep knowledge of teams, players, injuries, betting lines, historical trends, cover rates, ATS records, and statistics across all sports globally. Be direct, sharp and concise. Answer in 2-4 sentences max with real data and opinions. Never say you cannot help with a sport -- you cover everything.`;
 
@@ -2886,15 +2989,24 @@ function prependLiveNews(newsItems){
   // Remove any previously injected live items to avoid duplicates
   feed.querySelectorAll('.live-injected').forEach(el => el.remove());
 
-  const liveHtml = newsItems.map(n => `
+  const now = Date.now();
+  const liveHtml = newsItems.map(n => {
+    // Calculate time ago
+    const fetchedAt = n.fetchedAt || now;
+    const diffMs = now - fetchedAt;
+    const diffMin = Math.floor(diffMs / 60000);
+    const timeAgo = diffMin < 1 ? 'just now' : diffMin < 60 ? `${diffMin}m ago` : `${Math.floor(diffMin/60)}h ago`;
+
+    return `
     <div class="feed-item ${n.type} live-injected">
       <div class="fi-meta">
         <span class="fi-tag tag-${n.tag}">${n.label}</span>
-        <span class="fi-time" style="color:var(--green)">LIVE</span>
+        <span class="fi-time">${timeAgo}</span>
       </div>
       <div class="fi-headline">${n.h}</div>
       <div class="fi-body">${n.b || ''}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   feed.insertAdjacentHTML('afterbegin', liveHtml);
 }
 
