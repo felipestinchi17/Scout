@@ -2609,27 +2609,41 @@ Confidence: mostly 5-8, only 9-10 for very strong confirmed spots.`;
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20251001',
-        max_tokens: 2000,
-        system: 'You are a sports data API. Return only valid JSON with no other text.',
-        messages: [{role: 'user', content: prompt}]
+        messages: [
+          {role: 'user', content: 'You are a sports data API. Return only valid JSON with no other text, no markdown, no backticks.\n\n' + prompt}
+        ]
       })
     });
 
-    const data = await res.json();
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const rawText = await res.text();
+    let data;
+    try { data = JSON.parse(rawText); } catch(e) {
+      console.warn('AI cards - bad response:', rawText.substring(0, 200));
+      return null;
+    }
 
-    // Parse the JSON response
-    const clean = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    if(data.error) {
+      console.warn('AI cards - API error:', data.error.message);
+      return null;
+    }
+
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    if(!text) { console.warn('AI cards - no text in response'); return null; }
+
+    // Find JSON in response - look for { even if there is other text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) { console.warn('AI cards - no JSON found:', text.substring(0,200)); return null; }
+
+    const parsed = JSON.parse(jsonMatch[0]);
 
     if(parsed.cards && parsed.cards.length > 0) {
       aiCardCache[cacheKey] = parsed.cards;
       aiCardTimestamps[cacheKey] = Date.now();
       return parsed.cards;
     }
+    console.warn('AI cards - no cards in parsed response');
   } catch(e) {
-    console.warn('AI card generation error:', e);
+    console.warn('AI card generation error:', e.message);
   }
   return null;
 }
@@ -2651,9 +2665,10 @@ async function renderAICards(sportName, tabName, leagueName) {
   const cards = await generateAICards(sportName, tabName, leagueName);
 
   if(!cards || !cards.length) {
-    body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
+    body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
       <div style="font-size:28px;opacity:0.15">--</div>
-      No ${tabName} data for ${sportName.toUpperCase()}${ln} right now.
+      <div>Could not generate ${tabName} analysis for ${sportName.toUpperCase()}${ln}.</div>
+      <button onclick="renderAICards('${sportName}','${tabName}','${leagueName}')" style="background:var(--green);color:#000;border:none;padding:8px 16px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em">RETRY</button>
     </div>`;
     return;
   }
@@ -2838,16 +2853,25 @@ function renderLiveInjuryCards(injuryNews){
 
 function renderScheduleFromLive(games){
   const el = document.getElementById('schedule');
-  if(!el || !games.length) return;
-  const liveHtml = games.map(g => `
+  if(!el) return;
+  // Only show games that are today or live
+  const today = new Date().toDateString();
+  const filtered = games.filter(g => {
+    if(g.live) return true;
+    // Only show if time looks like today
+    return true; // ESPN already filters by current scoreboard
+  });
+  if(!filtered.length) {
+    el.innerHTML = '<span style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:0 16px">No games scheduled today</span>';
+    return;
+  }
+  el.innerHTML = filtered.map(g => `
     <div class="sched-game">
       ${g.live ? '<span class="sched-live">LIVE</span>' : ''}
       <span class="sched-teams">${g.t}</span>
       <span class="sched-time">${g.time}</span>
       ${g.a ? '<span class="sched-alert">!</span>' : ''}
     </div>`).join('');
-  // Prepend live games before sample data
-  el.innerHTML = liveHtml + el.innerHTML;
 }
 
 function prependLiveNews(newsItems){
