@@ -2396,10 +2396,12 @@ function buildSportBar(){
 }
 
 function setSport(s,el){
-  sport=s; itab='injuries'; filter='all';
+  sport=s; itab='injuries'; filter='all'; league='epl';
   document.querySelectorAll('.sp-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  renderAll();
+  // Snapshot current sport/tab so async operations don't overwrite
+  const thisSport = s;
+  renderAll(thisSport);
 }
 
 // --- SCHEDULE ---
@@ -2450,6 +2452,9 @@ function setItab(id,el){
   document.querySelectorAll('.ib-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderCards();
+  // Fetch fresh data for this tab if not cached
+  const cacheKey = sport + '-' + itab + '-' + league;
+  if(!isCacheValid(cacheKey)) fetchAndMerge();
 }
 
 function setLeague(id,el){
@@ -2555,95 +2560,89 @@ function renderCards(){
 
 // --- AI INTEL CARD GENERATOR ---
 
-// Cache for AI-generated cards so we don't regenerate every time
-const aiCardCache = {};
-const aiCardTimestamps = {};
-const AI_CARD_TTL = 24 * 60 * 60 * 1000; // 24 hours - cards persist all day
+// Cache for AI-generated cards - persists in sessionStorage across refreshes
+const AI_CARD_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 function isAiCacheValid(key) {
-  if(!aiCardCache[key]) return false;
-  return (Date.now() - (aiCardTimestamps[key] || 0)) < AI_CARD_TTL;
+  try {
+    const stored = sessionStorage.getItem('scout_ai_' + key);
+    if(!stored) return false;
+    const {data, ts} = JSON.parse(stored);
+    return data && (Date.now() - ts) < AI_CARD_TTL;
+  } catch(e) { return false; }
+}
+
+function getAiCache(key) {
+  try {
+    const stored = sessionStorage.getItem('scout_ai_' + key);
+    if(!stored) return null;
+    return JSON.parse(stored).data;
+  } catch(e) { return null; }
+}
+
+function setAiCache(key, data) {
+  try {
+    sessionStorage.setItem('scout_ai_' + key, JSON.stringify({data, ts: Date.now()}));
+  } catch(e) {}
 }
 
 async function generateAICards(sportName, tabName, leagueName) {
   const cacheKey = `ai-${sportName}-${tabName}-${leagueName}`;
   if(isAiCacheValid(cacheKey)) {
-    return aiCardCache[cacheKey];
+    return getAiCache(cacheKey);
   }
 
-  const sportLabel = sportName === 'soccer' ? `${sportName} ${leagueName || 'EPL'}` : sportName;
+  const sportLabel = sportName === 'soccer' ? `soccer ${leagueName || 'epl'}` : sportName;
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
 
-  const tabFocus = {
-    injuries: 'known injury situations and how teams historically perform without key players. Only mention injuries you are confident are real based on your training data',
-    lines: 'historical line movement patterns and sharp money tendencies for currently active teams',
-    sharp: 'sharp money patterns, steam moves, and public vs sharp betting tendencies with real historical data',
-    weather: 'how weather historically impacts this sport and these teams specifically',
-    fatigue: 'back to back situations, travel fatigue, and rest advantages with real ATS historical data',
-    revenge: 'revenge game spots, historical motivational angles, and teams with strong revenge game records',
-    matchups: 'key matchup edges, historical head to head records, and specific betting angles',
-    suspension: 'suspension situations and how teams historically perform with key players suspended',
-    rotation: 'coaching tendencies, rotation patterns, and how lineup changes affect betting',
-    condition: 'player conditioning situations and their historical betting impact'
+  const tabInstructions = {
+    injuries: `Generate 3 injury intel cards for ${sportLabel} showing teams with known injury concerns, their historical ATS performance without key players, and betting verdicts. Use your training knowledge about this sport - focus on historically injury-prone positions and how teams typically perform short-handed.`,
+    lines: `Generate 3 line movement intel cards for ${sportLabel} showing typical sharp money patterns, historically valuable line spots, and betting angles. Focus on situational spots like division games, revenge games, or teams with strong home/away splits.`,
+    sharp: `Generate 3 sharp money intel cards for ${sportLabel} showing historically strong fade-the-public spots, steam move patterns, and reverse line movement situations that have been profitable over multiple seasons.`,
+    weather: `Generate 3 weather impact intel cards for ${sportLabel} showing how wind, rain, cold, and heat historically affect scoring in this sport. Include specific thresholds like games with 15mph+ wind, rain over 0.5 inches, or temperatures below 35F and their impact on totals.`,
+    fatigue: `Generate 3 fatigue intel cards for ${sportLabel} showing back to back situations, short rest spots, and heavy travel schedules. Include historical ATS data for teams in these situations.`,
+    revenge: `Generate 3 revenge game intel cards for ${sportLabel} showing historically strong revenge spots. Include how teams perform after blowout losses, playoff eliminations, or against division rivals they lost to recently.`,
+    matchups: `Generate 3 matchup edge intel cards for ${sportLabel} showing historically valuable style mismatches, pace advantages, and tactical edges. Be specific about what types of matchups have been most exploitable.`,
+    suspension: `Generate 3 suspension impact intel cards for ${sportLabel} showing how teams historically perform when key players are suspended, including ATS data and betting angles.`,
+    rotation: `Generate 3 rotation intel cards for ${sportLabel} showing how lineup changes, load management, and coach rotation decisions historically affect ATS performance.`,
+    condition: `Generate 3 player condition intel cards for ${sportLabel} showing how teams perform when stars return from injury on restricted minutes or when key players are less than 100%.`
   };
 
-  const prompt = `Today is ${today}. Generate 3 intel cards for ${sportLabel.toUpperCase()} - ${tabName.toUpperCase()}.
+  const instruction = tabInstructions[tabName] || `Generate 3 ${tabName} intel cards for ${sportLabel} with historical betting data and verdicts.`;
 
-ACCURACY IS CRITICAL:
-- Kevin De Bruyne plays for AC MILAN not Man City
-- Only use NBA teams still active in the current 2025 playoffs - eliminated teams like Lakers, Nuggets, 76ers should NOT appear
-- Only mention injuries or suspensions you are CERTAIN about from your training data
-- If unsure about a current situation, use historical trends instead - never guess
-- Use correct current rosters - verify any transfers that happened before your knowledge cutoff
-- Only use teams currently competing in ${sportLabel}
+  const msg = `${instruction}
 
-Return ONLY this JSON structure, no other text:
-{"cards":[{"team":"TEAM NAME","sc":"green","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"detail text"},{"icon":"TGT","label":"IMPACT","t":"impact text"},{"icon":"LNE","label":"LINE","t":"line text"}],"trend":{"label":"TREND TITLE","stats":[{"n":"67%","l":"LABEL","c":"green"},{"n":"43%","l":"LABEL","c":"red"}],"bars":[{"l":"label","p":67,"c":"bar-green"},{"l":"label","p":43,"c":"bar-red"}],"sample":"n=X games"},"verdict":"green","vt":"1-2 sentence betting verdict."}]}
+Use accurate historical data from your training. Be specific with percentages and sample sizes.
 
-Rules: sc/verdict = green|red|amber. conf = 1-10. icon = INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c = bar-green|bar-red|bar-amber. p = 0-100.
-Focus on: ${tabFocus[tabName] || 'relevant betting intelligence using only verified historical data'}
-Confidence: mostly 5-8, only 9-10 for very strong confirmed spots.`;
+Return ONLY this JSON (no other text, no markdown, no backticks):
+{"cards":[{"team":"TEAM OR SITUATION NAME","sc":"amber","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"specific detail with real data"},{"icon":"TGT","label":"IMPACT","t":"betting impact"},{"icon":"LNE","label":"TREND","t":"historical stat"}],"trend":{"label":"TREND TITLE -- X SEASONS","stats":[{"n":"41%","l":"ATS COVER","c":"red"},{"n":"58%","l":"WIN RATE","c":"green"}],"bars":[{"l":"Situation A","p":41,"c":"bar-red"},{"l":"Situation B","p":62,"c":"bar-green"}],"sample":"n=X games tracked"},"verdict":"red","vt":"Specific actionable betting verdict."}]}
+
+Rules: sc/verdict=green|red|amber. conf=1-10. icon=INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c=bar-green|bar-red|bar-amber. p=0-100. Generate exactly 3 cards.`;
 
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        messages: [
-          {role: 'user', content: 'You are a sports data API. Return only valid JSON with no other text, no markdown, no backticks.\n\n' + prompt}
-        ]
-      })
+      body: JSON.stringify({messages:[{role:'user', content:msg}]})
     });
 
-    const rawText = await res.text();
-    let data;
-    try { data = JSON.parse(rawText); } catch(e) {
-      console.warn('AI cards - bad response:', rawText.substring(0, 200));
-      return null;
-    }
+    const raw = await res.text();
+    const data = JSON.parse(raw);
+    if(data.error) { console.warn('AI cards error:', data.error.message); return null; }
 
-    if(data.error) {
-      console.warn('AI cards - API error:', data.error.message);
-      return null;
-    }
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    if(!text) { console.warn('No text in AI response'); return null; }
 
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    if(!text) { console.warn('AI cards - no text in response'); return null; }
+    const match = text.match(/\{[\s\S]*\}/);
+    if(!match) { console.warn('No JSON found:', text.substring(0,200)); return null; }
 
-    // Find JSON in response - look for { even if there is other text
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) { console.warn('AI cards - no JSON found:', text.substring(0,200)); return null; }
-
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    if(parsed.cards && parsed.cards.length > 0) {
-      aiCardCache[cacheKey] = parsed.cards;
-      aiCardTimestamps[cacheKey] = Date.now();
+    const parsed = JSON.parse(match[0]);
+    if(parsed.cards?.length > 0) {
+      setAiCache(cacheKey, parsed.cards);
       return parsed.cards;
     }
-    console.warn('AI cards - no cards in parsed response');
   } catch(e) {
-    console.warn('AI card generation error:', e.message);
+    console.warn('AI card error:', e.message);
   }
   return null;
 }
@@ -2781,32 +2780,38 @@ function setCache(key, data) {
   liveCacheTimestamps[key] = Date.now();
 }
 
-async function renderAll(){
+async function renderAll(targetSport){
+  // Guard against stale async calls overwriting current sport
+  const currentSport = targetSport || sport;
   renderSchedule();
   renderNews();
   renderIntelTabs();
   renderCards();
   // Kick off live data fetch in background
-  fetchAndMerge();
+  fetchAndMerge(currentSport);
 }
 
 // Fetch live data and merge into the UI when ready
-async function fetchAndMerge(){
-  const cacheKey = sport + '-' + itab + '-' + league;
+async function fetchAndMerge(targetSport){
+  const sportAtStart = targetSport || sport;
+  const tabAtStart = itab;
+  const leagueAtStart = league;
+  const cacheKey = sportAtStart + '-' + tabAtStart + '-' + leagueAtStart;
+
   if(isCacheValid(cacheKey)) {
-    // Use cached data
-    applyLiveData(liveCache[cacheKey]);
+    // Only apply if still on same sport/tab
+    if(sport === sportAtStart && itab === tabAtStart) {
+      applyLiveData(liveCache[cacheKey]);
+    }
     return;
   }
 
   try {
-    const live = await loadLiveData(sport, itab, league);
+    const live = await loadLiveData(sportAtStart, tabAtStart, leagueAtStart);
     setCache(cacheKey, live);
-    applyLiveData(live);
-
-    // For injuries tab - also try to fetch real player-level injury data
-    if(itab === 'injuries' && ESPN_SPORT_MAP[sport]){
-      fetchRealInjuries(sport);
+    // Only apply if user hasn't switched sport/tab while we were loading
+    if(sport === sportAtStart && itab === tabAtStart) {
+      applyLiveData(live);
     }
   } catch(e){ console.warn('Live data merge error:', e); }
 }
@@ -3016,8 +3021,13 @@ function initDash(){
   buildSportBar();
   renderAll();
   tick();
-  // Auto refresh live data every 5 minutes
-  setInterval(() => { liveCache = {}; fetchAndMerge(); }, 5 * 60 * 1000);
+  // Auto refresh live data every 10 minutes
+  setInterval(() => {
+    // Clear only the current sport's cache to get fresh news
+    const keysToDelete = Object.keys(liveCache).filter(k => k.startsWith(sport + '-'));
+    keysToDelete.forEach(k => { delete liveCache[k]; delete liveCacheTimestamps[k]; });
+    fetchAndMerge();
+  }, 10 * 60 * 1000);
 }
 
 // Hash-based routing — if URL ends with #app show dashboard automatically
