@@ -1640,12 +1640,30 @@ const ODDS_SPORT_KEYS = {
 
 // --- ESPN SPORT MAP ---
 const ESPN_SPORT_MAP = {
-  nfl:  {sport:'football',   league:'nfl'},
-  nba:  {sport:'basketball', league:'nba'},
-  mlb:  {sport:'baseball',   league:'mlb'},
-  nhl:  {sport:'hockey',     league:'nhl'},
-  ncaa: {sport:'football',   league:'college-football'},
-  wnba: {sport:'basketball', league:'wnba'},
+  nfl:     {sport:'football',        league:'nfl'},
+  nba:     {sport:'basketball',      league:'nba'},
+  mlb:     {sport:'baseball',        league:'mlb'},
+  nhl:     {sport:'hockey',          league:'nhl'},
+  ncaa:    {sport:'football',        league:'college-football'},
+  wnba:    {sport:'basketball',      league:'wnba'},
+  mma:     {sport:'mma',             league:'ufc'},
+  golf:    {sport:'golf',            league:'pga'},
+  tennis:  {sport:'tennis',          league:'atp'},
+  soccer:  {sport:'soccer',          league:'eng.1'},
+};
+
+// ESPN soccer league map
+const ESPN_SOCCER_MAP = {
+  epl:          'eng.1',
+  laliga:       'esp.1',
+  bundesliga:   'ger.1',
+  seriea:       'ita.1',
+  ligue1:       'fra.1',
+  ucl:          'uefa.champions',
+  mls:          'usa.1',
+  eredivisie:   'ned.1',
+  ligaportugal: 'por.1',
+  brasileiro:   'bra.1',
 };
 
 // ━━━ LIVE DATA FETCHERS ━━━
@@ -1921,29 +1939,61 @@ function buildWeatherCard(weather, game) {
 async function loadLiveData(sport, tab, league) {
   const results = { news:[], schedule:[], cards:[] };
 
-  // Try ESPN for schedule
+  // Get the correct ESPN league for soccer
+  let espnSport = sport;
+  if(sport === 'soccer' && league && ESPN_SOCCER_MAP[league]) {
+    // Override the league in ESPN_SPORT_MAP temporarily
+    ESPN_SPORT_MAP['soccer'] = {sport:'soccer', league: ESPN_SOCCER_MAP[league]};
+  }
+
+  // Fetch schedule/scoreboard
   try {
     const schedData = await fetchESPNSchedule(sport);
     if(schedData) results.schedule = parseESPNSchedule(schedData);
   } catch(e){}
 
-  // Try ESPN for injuries news
-  try {
-    const injData = await fetchESPNInjuries(sport);
-    if(injData) results.news.push(...parseESPNInjuries(injData, sport));
-  } catch(e){}
+  // Fetch news - run in parallel for speed
+  const [injData, newsData] = await Promise.allSettled([
+    fetchESPNInjuries(sport),
+    fetchESPNNews(sport),
+  ]);
 
-  // Try ESPN for general news
-  try {
-    const newsData = await fetchESPNNews(sport);
-    if(newsData) results.news.push(...parseESPNNews(newsData));
-  } catch(e){}
+  if(injData.status === 'fulfilled' && injData.value) {
+    results.news.push(...parseESPNInjuries(injData.value, sport));
+  }
+  if(newsData.status === 'fulfilled' && newsData.value) {
+    results.news.push(...parseESPNNews(newsData.value));
+  }
 
-  // Try Odds API for lines tab
-  if(tab === 'lines' || tab === 'odds') {
+  // Fetch NewsAPI for additional breaking news if enabled
+  if(USE.NEWS && CFG.NEWS_API_KEY && CFG.NEWS_API_KEY !== 'YOUR_NEWS_API_KEY') {
+    try {
+      const breakingNews = await fetchBreakingNews(sport);
+      if(breakingNews) {
+        breakingNews.slice(0,4).forEach(article => {
+          const headline = article.title || '';
+          const desc = article.description || '';
+          if(headline && !headline.includes('[Removed]')) {
+            results.news.push({
+              type: 'warn',
+              tag: headline.toLowerCase().includes('injur') ? 'injury' : 'line',
+              label: headline.toLowerCase().includes('injur') ? 'INJ' : 'NEWS',
+              time: 'Live',
+              h: headline.substring(0, 70),
+              b: desc.substring(0, 100),
+              live: true,
+            });
+          }
+        });
+      }
+    } catch(e){}
+  }
+
+  // Fetch live odds for lines tab
+  if(tab === 'lines') {
     try {
       const oddsData = await fetchLiveOdds(sport, league);
-      if(oddsData) results.cards = parseOddsToCards(oddsData);
+      if(oddsData && oddsData.length > 0) results.cards = parseOddsToCards(oddsData);
     } catch(e){}
   }
 
