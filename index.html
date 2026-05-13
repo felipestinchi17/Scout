@@ -2030,19 +2030,6 @@ const FMAP={all:'ALL',injury:'INJ',line:'LINE',sharp:'SHARP',weather:'WTHR',line
 // --- TICKER ---
 const TICKERS=[];
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 function buildTicker(){
   const el=document.getElementById('tickerInner');
   if(!el)return;
@@ -2053,454 +2040,426 @@ function buildTicker(){
 // --- SCHEDULE ---
 const SCHEDS={nfl:[],nba:[],mlb:[],nhl:[],ncaa:[],wnba:[],soccer:[],tennis:[],nascar:[],mma:[],golf:[],boxing:[],f1:[]};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // --- DATA ---
 const DATA={
-  nfl:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  nba:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  mlb:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  nhl:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  ncaa:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  wnba:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  soccer:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  tennis:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  nascar:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  mma:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  golf:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  boxing:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
-  f1:{news:[],intel:{injuries:[],lines:[],sharp:[],weather:[],fatigue:[],revenge:[],matchups:[],suspension:[],rotation:[],condition:[]}},
+  nfl:{
+    news:[],
+
+
+
+
+
+
+
+    intel:{
+      injuries:[
+        {team:'COWBOYS',sc:'red',st:'OUT',conf:9,rows:[{icon:'INJ',label:'Injury',t:'Dak Prescott -- hand, officially OUT. Cooper Rush starts.'},{icon:'TGT',label:'Impact',t:'Cowboys offense loses 40%+ of upside without Dak.'},{icon:'LNE',label:'Line Move',t:'Cowboys +3 -> +7.5 instantly after the news broke.'}],
+        trend:{label:'NFL QB Injury Record -- 3 Seasons',stats:[{n:'41%',l:'WIN RATE',c:'red'},{n:'38%',l:'ATS COVER',c:'red'},{n:'-8.2',l:'PTS VS LINE',c:'red'}],bars:[{l:'Cover w/ backup QB',p:38,c:'bar-red'},{l:'Cover w/ starter',p:67,c:'bar-green'}],sample:'n=142 games with backup QBs starting'},
+        verdict:'red',vt:'Backup QBs cover at just 38% ATS over 3 seasons. Fade the Cowboys until this line reflects the full downgrade.'},
+        {team:'CHIEFS',sc:'amber',st:'QUESTIONABLE',conf:6,rows:[{icon:'INJ',label:'Injury',t:'Mahomes -- ankle, limited Wed/Thu. Full practice Friday.'},{icon:'TGT',label:'Impact',t:'Historically plays through minor ankle issues.'}],
+        trend:{label:'Mahomes Limited-Practice Weeks -- 4 Seasons',stats:[{n:'83%',l:'PLAYED',c:'green'},{n:'61%',l:'COVERED',c:'green'}],bars:[{l:'Played next game',p:83,c:'bar-green'},{l:'KC covered',p:61,c:'bar-green'}],sample:'n=18 limited-practice weeks tracked'},
+        verdict:'green',vt:'Mahomes plays in 83% of games after limited-practice weeks. Cover rate stays above 60%. Lean on KC with confidence.'},
+        {team:'49ERS',sc:'green',st:'FULL GO',conf:9,rows:[{icon:'OK',label:'Status',t:'McCaffrey -- full practice all week, zero limitations.'},{icon:'TGT',label:'Impact',t:'CMC healthy is one of the best spots in football.'}],
+        trend:{label:'49ers With vs Without CMC -- 2 Seasons',stats:[{n:'67%',l:'WIN RATE',c:'green'},{n:'63%',l:'ATS COVER',c:'green'},{n:'+11.4',l:'PPG DIFF',c:'green'}],bars:[{l:'Cover rate WITH CMC',p:63,c:'bar-green'},{l:'Cover rate WITHOUT CMC',p:41,c:'bar-red'}],sample:'n=94 games tracked across 2 seasons'},
+        verdict:'green',vt:'49ers cover at 63% with CMC vs 41% without him. Full health is a clear green light on San Francisco.'},
+      ],
+      weather:[
+        {team:'BEARS GAME',sc:'red',st:'EXTREME',conf:9,rows:[{icon:'WX',label:'Conditions',t:'22mph winds, gusts 34mph. 28 degF at kickoff Sunday.'},{icon:'TGT',label:'Impact',t:'Both QBs will struggle deep. Run-heavy, low scoring.'},{icon:'LNE',label:'Total',t:'Opened 44.5, now 38. Under heavily priced in.'}],
+        trend:{label:'NFL 20mph+ Wind Games -- 5 Seasons',stats:[{n:'71%',l:'UNDER RATE',c:'green'},{n:'23.1',l:'AVG PTS SCORED',c:'amber'},{n:'-6.2',l:'VS TOTAL',c:'green'}],bars:[{l:'Under rate',p:71,c:'bar-green'},{l:'Under 35 total pts',p:78,c:'bar-green'}],sample:'n=94 games with 20mph+ wind at kickoff'},
+        verdict:'amber',vt:'NFL games with 20mph+ winds go under 71% of the time over 5 seasons. Take the under if any value remains.'},
+      ],
+      fatigue:[
+        {team:'RAVENS',sc:'amber',st:'TRAVEL RISK',conf:5,rows:[{icon:'FAT',label:'Schedule',t:'Returning from London game last week.'},{icon:'TGT',label:'Stats',t:'London-return teams consistently underperform.'}],
+        trend:{label:'NFL London-Return Week ATS -- Historical',stats:[{n:'39%',l:'ATS COVER',c:'red'},{n:'-4.1',l:'PTS VS LINE',c:'red'}],bars:[{l:'Cover rate returning from London',p:39,c:'bar-red'},{l:'League average cover rate',p:50,c:'bar-amber'}],sample:'n=79 London-return games tracked'},
+        verdict:'amber',vt:'London-return teams cover at just 39% ATS the following week. Cross-Atlantic travel fatigue is consistently underpriced.'},
+      ],
+      lines:[
+        {team:'EAGLES -4.5',sc:'red',st:'SHARP FADE',conf:8,rows:[{icon:'LNE',label:'Move',t:'Opened -6.5, now -4.5 against 68% public money.'},{icon:'SHP',label:'Sharp $',t:'Reverse line movement -- sharps betting Cowboys.'}],
+        trend:{label:'Reverse Line Movement 3+ Pts -- All Sports',stats:[{n:'64%',l:'SHARP SIDE COVERS',c:'green'},{n:'+$940',l:'PROFIT/100 BETS',c:'green'}],bars:[{l:'Sharp side covers',p:64,c:'bar-green'},{l:'Public side covers',p:36,c:'bar-red'}],sample:'n=312 reverse line movement spots'},
+        verdict:'red',vt:'RLM spots of 3+ points see the sharp side cover 64% of the time. Take Cowboys +4.5 before it moves further.'},
+      ],
+      revenge:[
+        {team:'DIGGS vs BILLS',sc:'amber',st:'WATCH',conf:5,rows:[{icon:'RVG',label:'Situation',t:'Stefon Diggs first game vs Buffalo since trade.'},{icon:'TGT',label:'History',t:'WRs in revenge spots outperform their averages.'}],
+        trend:{label:'WR Revenge Spots vs Former Teams',stats:[{n:'+18%',l:'TARGET SHARE',c:'green'},{n:'+23%',l:'YDS VS AVG',c:'green'},{n:'61%',l:'PROP HIT RATE',c:'green'}],bars:[{l:'Beat receiving prop',p:61,c:'bar-green'},{l:'Top target in game',p:54,c:'bar-amber'}],sample:'n=88 WR revenge games tracked'},
+        verdict:'amber',vt:'WRs against former teams hit their receiving props 61% of the time with +18% target share. Strong DFS play if game script allows.'},
+      ],
+      matchups:[
+        {team:'SLOT WR vs ATL',sc:'green',st:'EXPLOIT',conf:7,rows:[{icon:'TGT',label:'Edge',t:'Atlanta CB2 allowing 1.4 yds/route -- league worst.'},{icon:'TGT',label:'Play',t:'Slot WRs torching this coverage all season.'}],
+        trend:{label:'Slot WRs vs ATL CB2 -- This Season',stats:[{n:'1.4',l:'YDS/ROUTE',c:'red'},{n:'72%',l:'PROP HITS',c:'green'}],bars:[{l:'Slot WR prop hit rate vs ATL',p:72,c:'bar-green'},{l:'Season avg prop hit rate',p:51,c:'bar-amber'}],sample:'n=14 games tracked this season'},
+        verdict:'green',vt:'Atlanta\'s slot CB is the worst in the league by yds/route allowed. Slot WRs hit props 72% of the time against this coverage.'},
+      ],
+      sharp:[
+        {team:'PACKERS -1.5',sc:'green',st:'STEAM',conf:7,rows:[{icon:'SHP',label:'Sharp $',t:'Opened pick\'em, moved to GB -1.5 on sharp action only.'},{icon:'LNE',label:'Signal',t:'55% public on opponent. Pure sharp money move.'}],
+        trend:{label:'Sharp Steam Plays vs Public -- Last 3 Seasons',stats:[{n:'62%',l:'SHARP COVERS',c:'green'},{n:'+1.8',l:'AVG PTS WON',c:'green'}],bars:[{l:'Sharp side cover rate',p:62,c:'bar-green'},{l:'Public heavy side covers',p:38,c:'bar-red'}],sample:'n=189 steam plays tracked'},
+        verdict:'green',vt:'When sharp money moves a line while the public fades, the sharp side covers 62% of the time. Back Green Bay.'},
+      ],
+    }
+  },
+  nba:{
+    news:[],
+
+
+
+
+
+
+
+    intel:{
+      injuries:[
+        {team:'LAKERS',sc:'amber',st:'QUESTIONABLE',conf:5,rows:[{icon:'INJ',label:'Injury',t:'Anthony Davis -- knee soreness, did not practice.'},{icon:'TGT',label:'Impact',t:'AD averages 28/12. Lakers drop 8+ pts without him.'},{icon:'LNE',label:'Line',t:'Lakers -4 -> -1.5 on the AD news.'}],
+        trend:{label:'Lakers With vs Without AD -- 3 Seasons',stats:[{n:'38%',l:'COVER W/O AD',c:'red'},{n:'59%',l:'COVER WITH AD',c:'green'},{n:'-9.4',l:'NET RATING',c:'red'}],bars:[{l:'Cover rate WITH AD',p:59,c:'bar-green'},{l:'Cover rate WITHOUT AD',p:38,c:'bar-red'}],sample:'n=61 games without AD tracked'},
+        verdict:'red',vt:'Lakers cover at just 38% without AD versus 59% with him. Do not bet them until he\'s officially confirmed to play.'},
+        {team:'WARRIORS',sc:'red',st:'OUT',conf:9,rows:[{icon:'INJ',label:'Injury',t:'Steph Curry -- hamstring, OFFICIALLY OUT. Klay doubtful.'},{icon:'TGT',label:'Impact',t:'Without Curry+Klay, GSW is a bottom-10 offense.'},{icon:'SHP',label:'Line',t:'Line moved 9 full points on the news.'}],
+        trend:{label:'Warriors Without Curry -- 4 Seasons',stats:[{n:'34%',l:'WIN RATE',c:'red'},{n:'36%',l:'ATS COVER',c:'red'},{n:'-14.2',l:'NET RATING',c:'red'}],bars:[{l:'Win rate WITHOUT Steph',p:34,c:'bar-red'},{l:'Win rate WITH Steph',p:67,c:'bar-green'}],sample:'n=47 games without Curry tracked'},
+        verdict:'red',vt:'Warriors cover at just 36% without Steph -- one of the worst star-out records in the league. Fade or take the opponent.'},
+      ],
+      fatigue:[
+        {team:'CELTICS B2B',sc:'red',st:'DANGER',conf:8,rows:[{icon:'FAT',label:'Schedule',t:'Second night B2B. Denver road game then home tonight.'},{icon:'TGT',label:'Stats',t:'Celtics 6-14 ATS on second night of B2B this season.'},{icon:'LNE',label:'Line',t:'Still favored -5. Books haven\'t fully adjusted.'}],
+        trend:{label:'Celtics 2nd Night B2B After Road Game -- 2 Seasons',stats:[{n:'30%',l:'ATS COVER',c:'red'},{n:'-6.1',l:'PTS VS LINE',c:'red'},{n:'6-14',l:'ATS RECORD',c:'red'}],bars:[{l:'Cover rate (B2B after road)',p:30,c:'bar-red'},{l:'Season avg cover rate',p:56,c:'bar-green'}],sample:'n=20 games in this exact spot'},
+        verdict:'red',vt:'Celtics in this exact spot cover at just 30% -- 26 percentage points below their season average. One of the clearest fade spots in the NBA.'},
+      ],
+      lines:[
+        {team:'HEAT +1.5',sc:'green',st:'SHARP VALUE',conf:8,rows:[{icon:'LNE',label:'Move',t:'Heat went from +3.5 to +1.5 on sharp money.'},{icon:'SHP',label:'Sharp $',t:'72% public on opponent. Classic reverse line move.'}],
+        trend:{label:'NBA Reverse Line Movement 2+ Pts',stats:[{n:'63%',l:'SHARP SIDE COVERS',c:'green'},{n:'+$820',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp side cover rate',p:63,c:'bar-green'},{l:'Public side cover rate',p:37,c:'bar-red'}],sample:'n=234 RLM spots in the NBA'},
+        verdict:'green',vt:'NBA reverse line movement spots cover 63% of the time. Take Miami +1.5 before it closes at pick\'em.'},
+      ],
+      sharp:[
+        {team:'THUNDER ML',sc:'green',st:'STEAM',conf:9,rows:[{icon:'SHP',label:'Sharp $',t:'Heavy steam OKC ML. Three sharp groups confirmed.'},{icon:'LNE',label:'Move',t:'Thunder +1 -> -2 on sharp action only.'}],
+        trend:{label:'Multi-Group Sharp Steam NBA -- This Season',stats:[{n:'71%',l:'WIN RATE',c:'green'},{n:'68%',l:'ATS COVER',c:'green'},{n:'+$1,240',l:'PROFIT/100',c:'green'}],bars:[{l:'Win rate with 3+ groups',p:71,c:'bar-green'},{l:'Single group steam',p:58,c:'bar-amber'}],sample:'n=41 multi-group steam plays this season'},
+        verdict:'green',vt:'When three or more sharp groups align on one side, that team wins 71% of the time this season. Back OKC with full confidence.'},
+      ],
+      revenge:[
+        {team:'JIMMY vs HEAT',sc:'amber',st:'WATCH',conf:5,rows:[{icon:'RVG',label:'Situation',t:'Jimmy Butler first game against Miami since departure.'},{icon:'TGT',label:'History',t:'Jimmy scores 6+ more in revenge spots historically.'}],
+        trend:{label:'Jimmy Butler Revenge Games vs Former Teams',stats:[{n:'+6.2',l:'PTS VS AVG',c:'green'},{n:'64%',l:'PROP HIT RATE',c:'green'}],bars:[{l:'Beat scoring prop',p:64,c:'bar-green'},{l:'25+ point games',p:55,c:'bar-amber'}],sample:'n=11 Jimmy Butler revenge spots tracked'},
+        verdict:'amber',vt:'Butler averages 6.2 more points in revenge spots and hits his scoring prop 64% of the time. Strong DFS consideration.'},
+      ],
+      matchups:[
+        {team:'JOKIC MATCHUP',sc:'green',st:'EXPLOIT',conf:8,rows:[{icon:'TGT',label:'Edge',t:'Opponent C allows 68 FG% to opposing bigs -- worst in league.'},{icon:'TGT',label:'Play',t:'Jokic healthy plus weakest matchup equals massive ceiling.'}],
+        trend:{label:'Jokic vs Bottom-5 Defensive Bigs -- 3 Seasons',stats:[{n:'31.4',l:'AVG PTS',c:'green'},{n:'13.2',l:'AVG REB',c:'green'},{n:'79%',l:'HIT 55+ FP',c:'green'}],bars:[{l:'Hit 55+ fantasy points',p:79,c:'bar-green'},{l:'30+ point games',p:63,c:'bar-green'}],sample:'n=38 games vs bottom-5 defensive centers'},
+        verdict:'green',vt:'Jokic averages 31.4 pts and hits 55+ fantasy points 79% of the time against bottom-5 centers. Best play on the slate tonight.'},
+      ],
+    }
+  },
+  mlb:{
+    news:[],
+
+
+
+    intel:{
+      injuries:[
+        {team:'YANKEES',sc:'red',st:'SP SCRATCH',conf:9,rows:[{icon:'INJ',label:'Injury',t:'Gerrit Cole scratched -- elbow. Rodon starts.'},{icon:'TGT',label:'Impact',t:'Cole 2.80 ERA vs Rodon 4.90. Massive drop.'},{icon:'LNE',label:'Line',t:'Yankees -140 -> +105. 2.45 run line swing.'}],
+        trend:{label:'Ace Day-Of Scratch -- 4 MLB Seasons',stats:[{n:'58%',l:'OPP WIN RATE',c:'green'},{n:'61%',l:'OPP RUN LINE',c:'green'},{n:'+1.8',l:'AVG RUNS DIFF',c:'green'}],bars:[{l:'Opponent win rate',p:58,c:'bar-green'},{l:'Opponent run line covers',p:61,c:'bar-green'}],sample:'n=89 day-of pitcher scratches tracked'},
+        verdict:'red',vt:'When an ace is scratched day-of, the opponent wins 58% of the time. Bet the Red Sox or stay away from the Yankees entirely.'},
+      ],
+      matchups:[
+        {team:'DODGERS STACK',sc:'green',st:'EXPLOIT',conf:7,rows:[{icon:'TGT',label:'Edge',t:'Opposing SP has .340 OBP allowed vs left-handed lineup.'},{icon:'TGT',label:'Play',t:'Ohtani, Freeman, Muncy all confirmed in the lineup.'}],
+        trend:{label:'Dodgers vs Vulnerable Righties -- 2 Seasons',stats:[{n:'68%',l:'WIN RATE',c:'green'},{n:'5.8',l:'AVG RUNS',c:'green'},{n:'71%',l:'OVER RATE',c:'green'}],bars:[{l:'Win rate',p:68,c:'bar-green'},{l:'Over on team runs',p:71,c:'bar-green'}],sample:'n=28 games vs righties with .330+ OBP allowed'},
+        verdict:'green',vt:'Dodgers score 5.8 runs per game at full strength vs vulnerable righties. Strong stack tonight -- DFS and game total both favorable.'},
+      ],
+    }
+  },
+  nhl:{
+    news:[],
+    intel:{
+      injuries:[
+        {team:'AVALANCHE',sc:'amber',st:'GAME-TIME',conf:4,rows:[{icon:'INJ',label:'Injury',t:'Nathan MacKinnon -- upper body, skipped skate.'},{icon:'TGT',label:'Impact',t:'MacKinnon accounts for 38% of Avs scoring.'}],
+        trend:{label:'Avalanche Without MacKinnon -- 3 Seasons',stats:[{n:'34%',l:'WIN RATE',c:'red'},{n:'38%',l:'ATS COVER',c:'red'},{n:'-1.8',l:'GOAL DIFF',c:'red'}],bars:[{l:'Win rate WITHOUT MacKinnon',p:34,c:'bar-red'},{l:'Win rate WITH MacKinnon',p:62,c:'bar-green'}],sample:'n=29 games without MacKinnon'},
+        verdict:'amber',vt:'Avalanche win at just 34% without MacKinnon vs 62% with him. Wait for official lineup before betting Colorado.'},
+      ],
+    }
+  },
+  ncaa:{
+    news:[],
+
+
+
+
+
+    intel:{
+      injuries:[
+        {team:'ALABAMA',sc:'amber',st:'QUESTIONABLE',conf:6,rows:[{icon:'INJ',label:'Injury',t:'QB Milroe -- knee, limited practice, game-time call.'},{icon:'TGT',label:'Impact',t:'Backup at 60% completion vs Milroe\'s 72%.'},{icon:'LNE',label:'Line',t:'Bama -14 -> -9 on injury reports this week.'}],
+        trend:{label:'Alabama With Backup QB -- 5 Seasons',stats:[{n:'38%',l:'ATS COVER',c:'red'},{n:'50%',l:'WIN RATE',c:'amber'},{n:'-11.2',l:'PTS VS LINE',c:'red'}],bars:[{l:'Cover rate WITH Milroe',p:67,c:'bar-green'},{l:'Cover rate WITH backup QB',p:38,c:'bar-red'}],sample:'n=8 games with backup QB starting'},
+        verdict:'red',vt:'Alabama covers at just 38% with a backup QB versus 67% with Milroe. This spread needs to drop much further if he is out.'},
+      ],
+      lines:[
+        {team:'OHIO STATE -13.5',sc:'amber',st:'LINE DROP',conf:6,rows:[{icon:'LNE',label:'Move',t:'Dropped from -17 to -13.5. Sharp money on underdog.'},{icon:'SHP',label:'Signal',t:'80% public Ohio State. Classic sharp vs public split.'}],
+        trend:{label:'NCAAF Sharp vs 80%+ Public -- Last 3 Seasons',stats:[{n:'61%',l:'SHARP SIDE COVERS',c:'green'},{n:'+$710',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp side cover rate',p:61,c:'bar-green'},{l:'Heavy public side covers',p:39,c:'bar-red'}],sample:'n=156 spots with 80%+ public action'},
+        verdict:'amber',vt:'Sharp money against 80%+ public covers 61% in college football. Consider the underdog at +13.5.'},
+      ],
+    }
+  },
+  wnba:{
+    news:[],
+
+
+
+    intel:{
+      injuries:[
+        {team:'ACES',sc:'red',st:'DOUBTFUL',conf:8,rows:[{icon:'INJ',label:'Injury',t:'A\'ja Wilson -- ankle, doubtful. Two days no practice.'},{icon:'TGT',label:'Impact',t:'Wilson is 40% of Aces offense. Massive if she sits.'},{icon:'LNE',label:'Line',t:'Line moved 2.5 points against Las Vegas.'}],
+        trend:{label:'Aces Without A\'ja Wilson -- 3 Seasons',stats:[{n:'29%',l:'WIN RATE',c:'red'},{n:'31%',l:'ATS COVER',c:'red'},{n:'-12.1',l:'NET RATING',c:'red'}],bars:[{l:'Win rate WITH Wilson',p:74,c:'bar-green'},{l:'Win rate WITHOUT Wilson',p:29,c:'bar-red'}],sample:'n=14 games without A\'ja Wilson'},
+        verdict:'red',vt:'Aces win 74% with Wilson and just 29% without her. WNBA lines are thin -- this is a massive fade opportunity.'},
+      ],
+      sharp:[
+        {team:'LIBERTY ML',sc:'green',st:'STEAM',conf:7,rows:[{icon:'SHP',label:'Sharp $',t:'Sharp money piling on NY Liberty after Wilson news.'},{icon:'LNE',label:'Move',t:'Liberty -3 -> -5.5 combined sharp and public.'}],
+        trend:{label:'WNBA Sharp Money -- This Season',stats:[{n:'66%',l:'WIN RATE',c:'green'},{n:'63%',l:'COVER RATE',c:'green'}],bars:[{l:'Sharp side win rate',p:66,c:'bar-green'},{l:'Flip side wins',p:34,c:'bar-red'}],sample:'n=38 sharp money plays this WNBA season'},
+        verdict:'green',vt:'Sharp money wins 66% in the WNBA -- a market where books pay less attention and lines are easier to beat.'},
+      ],
+    }
+  },
+  soccer:{
+    news:[],
+
+
+
+
+
+
+
+    intel:{
+      injuries:[
+        {team:'MAN CITY',sc:'amber',st:'CONCERN',conf:6,rows:[{icon:'INJ',label:'Injury',t:'Haaland -- missed Thursday training, fitness doubt.'},{icon:'TGT',label:'Impact',t:'Haaland scores 42% of City goals. Enormous if absent.'},{icon:'LNE',label:'Line',t:'City odds drifted from -180 to -130 on the concern.'}],
+        trend:{label:'Man City With vs Without Haaland -- EPL 2 Seasons',stats:[{n:'43%',l:'WIN W/O HLN',c:'red'},{n:'76%',l:'WIN WITH HLN',c:'green'},{n:'-1.2',l:'GOALS PER GAME',c:'red'}],bars:[{l:'Win rate WITH Haaland',p:76,c:'bar-green'},{l:'Win rate WITHOUT Haaland',p:43,c:'bar-red'}],sample:'n=38 EPL games with Haaland in/out'},
+        verdict:'amber',vt:'City wins 76% with Haaland vs 43% without him -- a 33-point swing. Wait for official lineup 1 hour before kickoff.'},
+        {team:'REAL MADRID',sc:'green',st:'FULL GO',conf:8,rows:[{icon:'OK',label:'Status',t:'Bellingham, Mbappe, Rodrygo all fit and starting.'},{icon:'TGT',label:'Impact',t:'Full attack available. Madrid is the best team in Europe.'}],
+        trend:{label:'Real Madrid Full Squad Available -- La Liga',stats:[{n:'79%',l:'WIN RATE',c:'green'},{n:'71%',l:'ATS COVER',c:'green'},{n:'3.1',l:'AVG GOALS',c:'green'}],bars:[{l:'Win rate at full strength',p:79,c:'bar-green'},{l:'Win rate with absences',p:54,c:'bar-amber'}],sample:'n=52 La Liga games with full squad'},
+        verdict:'green',vt:'Real Madrid at full strength wins 79% and covers 71% of the time. Back them with full confidence.'},
+      ],
+      suspension:[
+        {team:'VINICIUS JR',sc:'amber',st:'ONE CARD',conf:9,rows:[{icon:'SUS',label:'Status',t:'Vinicius on 4 yellows -- one more = automatic ban.'},{icon:'TGT',label:'Impact',t:'May play cautiously or be subbed off early.'},{icon:'TGT',label:'Angle',t:'Fade Vinicius anytime scorer markets this week.'}],
+        trend:{label:'Players One Card From Suspension -- Top 5 Leagues',stats:[{n:'-19%',l:'SHOT VOLUME',c:'red'},{n:'41%',l:'PROP HIT RATE',c:'red'},{n:'31%',l:'SUBBED EARLY',c:'amber'}],bars:[{l:'Anytime scorer hit rate',p:41,c:'bar-red'},{l:'Normal anytime scorer rate',p:58,c:'bar-green'}],sample:'n=211 one-card-away situations tracked'},
+        verdict:'amber',vt:'Players one card from suspension hit anytime scorer props at just 41% vs their normal 58%. Fade Vinicius scorer markets.'},
+        {team:'PSG',sc:'red',st:'SUSPENDED',conf:9,rows:[{icon:'SUS',label:'Status',t:'Marquinhos suspended after red card last match.'},{icon:'TGT',label:'Impact',t:'Best CB missing. Back line significantly weakened.'}],
+        trend:{label:'PSG Without Marquinhos -- Ligue 1 3 Seasons',stats:[{n:'33%',l:'WIN RATE',c:'red'},{n:'42%',l:'CLEAN SHEETS',c:'red'},{n:'2.1',l:'GOALS CONCEDED',c:'red'}],bars:[{l:'Win rate WITHOUT Marquinhos',p:33,c:'bar-red'},{l:'Win rate WITH Marquinhos',p:71,c:'bar-green'}],sample:'n=12 Ligue 1 games without Marquinhos'},
+        verdict:'red',vt:'PSG wins just 33% without Marquinhos vs 71% with him. Their defense is severely exposed. Lean opponents or over on goals.'},
+      ],
+      rotation:[
+        {team:'PSG ROTATION',sc:'red',st:'B SQUAD',conf:9,rows:[{icon:'ROT',label:'Confirmed',t:'Manager confirmed rotation ahead of UCL match.'},{icon:'TGT',label:'Impact',t:'Mbappe and Hakimi rested. Full B squad starting.'},{icon:'LNE',label:'Line',t:'PSG opened -200, drifted to -110 on the news.'}],
+        trend:{label:'Top Club UCL Rotation -- Domestic Match After',stats:[{n:'39%',l:'WIN RATE',c:'red'},{n:'37%',l:'ATS COVER',c:'red'},{n:'-0.8',l:'GOAL DIFF',c:'red'}],bars:[{l:'Win rate with B squad',p:39,c:'bar-red'},{l:'Win rate with full squad',p:68,c:'bar-green'}],sample:'n=67 UCL rotation spots last 3 seasons'},
+        verdict:'red',vt:'Clubs rotating for Champions League win just 39% of domestic games. Back the opponent or take the under on goals.'},
+      ],
+      lines:[
+        {team:'ATLETICO ML',sc:'green',st:'SHARP STEAM',conf:8,rows:[{icon:'LNE',label:'Move',t:'ATM vs JUV -- moved from +120 to -105 on sharp.'},{icon:'SHP',label:'Signal',t:'Reverse line movement in a major European match.'}],
+        trend:{label:'Soccer Reverse Line Movement -- Top 5 Leagues',stats:[{n:'61%',l:'SHARP SIDE WINS',c:'green'},{n:'58%',l:'ML PROFIT RATE',c:'green'}],bars:[{l:'Sharp side win rate',p:61,c:'bar-green'},{l:'Public heavy side wins',p:39,c:'bar-red'}],sample:'n=142 RLM spots in top 5 European leagues'},
+        verdict:'green',vt:'Sharp money on soccer wins 61% of the time in European leagues. Atletico at home with sharp backing is a strong play.'},
+      ],
+      weather:[
+        {team:'CHICAGO MLS',sc:'amber',st:'CONDITIONS',conf:7,rows:[{icon:'WX',label:'Conditions',t:'Heavy rain and 20mph wind. Poor pitch conditions.'},{icon:'TGT',label:'Impact',t:'Low-scoring physical game expected all around.'}],
+        trend:{label:'MLS Rain + 15mph+ Wind Games',stats:[{n:'68%',l:'UNDER 2.5 GOALS',c:'green'},{n:'1.4',l:'AVG GOALS',c:'amber'}],bars:[{l:'Under 2.5 goals rate',p:68,c:'bar-green'},{l:'Under 3.5 goals rate',p:81,c:'bar-green'}],sample:'n=48 MLS games with rain and strong wind'},
+        verdict:'amber',vt:'MLS games in rain and wind go under 2.5 goals 68% of the time. Under 2.5 is the clear play tonight.'},
+      ],
+    }
+  },
+  tennis:{
+    news:[],
+
+
+
+
+    intel:{
+      injuries:[
+        {team:'DJOKOVIC',sc:'red',st:'RETIRED',conf:10,rows:[{icon:'INJ',label:'Injury',t:'Djokovic retired mid-match -- wrist. Out of tournament.'},{icon:'TGT',label:'Impact',t:'Check if your book offers draw no bet protection.'},{icon:'SHP',label:'Market',t:'Full tournament bracket odds completely reshuffled.'}],
+        trend:{label:'Grand Slam Retirements -- Bracket Impact',stats:[{n:'73%',l:'NEXT DRAW WINS',c:'green'},{n:'+120',l:'AVG ODDS VALUE',c:'green'}],bars:[{l:'Next draw opponent advances',p:73,c:'bar-green'},{l:'Surprise early exit from draw',p:27,c:'bar-red'}],sample:'n=22 Grand Slam retirements tracked'},
+        verdict:'red',vt:'Djokovic out reshuffles everything. Check your book for retirement protection. Next draw beneficiaries gain average +120 value.'},
+        {team:'SWIATEK',sc:'amber',st:'CONCERN',conf:5,rows:[{icon:'INJ',label:'Injury',t:'Knee strapping visible. Trainer attended between sets.'},{icon:'TGT',label:'Impact',t:'Historically fights through knee issues but monitor closely.'}],
+        trend:{label:'Swiatek With Visible Knee Issue During Match',stats:[{n:'56%',l:'WON MATCH',c:'amber'},{n:'44%',l:'LOST 3RD SET',c:'amber'}],bars:[{l:'Won match with knee issue',p:56,c:'bar-amber'},{l:'Set handicap hit rate',p:44,c:'bar-red'}],sample:'n=9 matches with visible knee concern'},
+        verdict:'amber',vt:'Swiatek wins only 56% when showing knee issues. Fade set handicap markets and monitor retirement risk throughout the match.'},
+      ],
+      matchups:[
+        {team:'ALCARAZ',sc:'green',st:'FAVORABLE',conf:7,rows:[{icon:'TGT',label:'Edge',t:'Opponent has losing h2h record on clay -- Alcaraz\'s surface.'},{icon:'TGT',label:'Play',t:'Fully fit, motivated on home surface. All arrows pointing right.'}],
+        trend:{label:'Alcaraz on Clay vs Players With Losing Clay H2H',stats:[{n:'86%',l:'WIN RATE',c:'green'},{n:'91%',l:'HIT SET HDC',c:'green'}],bars:[{l:'Match win rate',p:86,c:'bar-green'},{l:'Won by 2+ sets',p:73,c:'bar-green'}],sample:'n=22 clay matches vs inferior opponents'},
+        verdict:'green',vt:'Alcaraz wins 86% on clay against players with losing clay records. Fully fit makes this one of the safest plays on the board.'},
+      ],
+    }
+  },
+  nascar:{
+    news:[],
+    intel:{
+      weather:[
+        {team:'TALLADEGA 500',sc:'red',st:'DELAYED',conf:9,rows:[{icon:'WX',label:'Conditions',t:'Heavy rain at Talladega. Delayed indefinitely.'},{icon:'TGT',label:'Impact',t:'Possible Monday finish. Check driver conflicts.'},{icon:'LNE',label:'Markets',t:'Some books now suspending live betting.'}],
+        trend:{label:'Rain-Delayed NASCAR Races at Talladega -- Historical',stats:[{n:'64%',l:'UPSET WINNER',c:'amber'},{n:'3.2x',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Non-favorite wins',p:64,c:'bar-amber'},{l:'Top-10 prerace favorite wins',p:36,c:'bar-red'}],sample:'n=11 rain-delayed Talladega races tracked'},
+        verdict:'amber',vt:'Rain chaos at Talladega produces upset winners 64% of the time. Hold futures bets -- conditions heavily favor longshots over favorites.'},
+      ],
+    }
+  },
+  mma:{
+    news:[],
+
+
+
+    intel:{
+      injuries:[
+        {team:'UFC 310 MAIN',sc:'red',st:'MISSED WEIGHT',conf:9,rows:[{icon:'INJ',label:'Status',t:'Main event fighter missed weight by 3lbs.'},{icon:'TGT',label:'Impact',t:'Severe cuts lead to gassed performances in late rounds.'},{icon:'LNE',label:'Line',t:'Fighter moved from -220 favorite to +140 underdog.'}],
+        trend:{label:'UFC Fighters Who Missed Weight 2+ Lbs',stats:[{n:'34%',l:'WIN RATE',c:'red'},{n:'71%',l:'LOSE ROUNDS 3+',c:'red'},{n:'58%',l:'OPP WIN RATE',c:'green'}],bars:[{l:'Fighter who missed weight wins',p:34,c:'bar-red'},{l:'Opponent wins',p:58,c:'bar-green'}],sample:'n=87 fighters who missed weight by 2+ lbs'},
+        verdict:'red',vt:'Fighters missing weight by 2+ lbs win just 34% of the time and gas out badly in round 3 and beyond. Fade them in late rounds especially.'},
+        {team:'CO-MAIN EVENT',sc:'red',st:'REPLACEMENT',conf:8,rows:[{icon:'INJ',label:'Status',t:'Original fighter OUT. Late replacement stepped in.'},{icon:'TGT',label:'Impact',t:'Short-notice replacements historically underperform.'},{icon:'SHP',label:'Line',t:'Original was -160 fav. Market fully reset.'}],
+        trend:{label:'Short-Notice UFC Replacements (Under 2 Weeks)',stats:[{n:'36%',l:'WIN RATE',c:'red'},{n:'29-51',l:'ATS RECORD',c:'red'},{n:'+$1,100',l:'PROFIT FADING/100',c:'green'}],bars:[{l:'Replacement fighter wins',p:36,c:'bar-red'},{l:'Original fighter side wins',p:64,c:'bar-green'}],sample:'n=81 short-notice replacements tracked'},
+        verdict:'red',vt:'Short-notice replacements win just 36% of the time at this level. Back the original remaining fighter -- one of the most reliable MMA edges.'},
+      ],
+    }
+  },
+  golf:{
+    news:[],
+
+
+
+    intel:{
+      injuries:[
+        {team:'SCHEFFLER WD',sc:'red',st:'WITHDRAWN',conf:10,rows:[{icon:'INJ',label:'Status',t:'Scheffler withdrawn -- back spasms before Round 2.'},{icon:'TGT',label:'Impact',t:'World #1 out. Outright odds completely reshuffled.'},{icon:'SHP',label:'Market',t:'Rory McIlroy now tournament favorite at +350.'}],
+        trend:{label:'World #1 WD from Major Tournaments -- Historical',stats:[{n:'57%',l:'NON-FAV WINS',c:'amber'},{n:'+280',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Winner was 10-1 or longer',p:57,c:'bar-amber'},{l:'Winner was premarket top-5',p:43,c:'bar-green'}],sample:'n=14 world #1 withdrawals from majors'},
+        verdict:'amber',vt:'When the world #1 withdraws from a major, 57% of winners come at 10-1 or longer. Target 15-1 to 30-1 range for the best value.'},
+      ],
+      weather:[
+        {team:'AUGUSTA R3-R4',sc:'amber',st:'WIND',conf:8,rows:[{icon:'WX',label:'Conditions',t:'25mph sustained wind forecast for weekend rounds.'},{icon:'TGT',label:'Impact',t:'Augusta in wind adds 3-5 strokes to the average score.'},{icon:'TGT',label:'Play',t:'Fade bombers, back accurate ball-strikers.'}],
+        trend:{label:'Augusta With 20mph+ Wind in Weekend Rounds',stats:[{n:'+4.1',l:'STROKES ADDED',c:'red'},{n:'73%',l:'ACCURACY WINS',c:'green'},{n:'21%',l:'DISTANCE WINS',c:'red'}],bars:[{l:'Accurate ball-strikers win',p:73,c:'bar-green'},{l:'Long-drive leaders win',p:21,c:'bar-red'}],sample:'n=10 Augusta weekends with 20mph+ wind'},
+        verdict:'amber',vt:'Augusta wind favors precision over power -- accurate ball-strikers win 73% vs just 21% for long hitters. Adjust all outright picks accordingly.'},
+      ],
+    }
+  },
+  boxing:{
+    news:[],
+
+
+
+
+
+    intel:{
+      injuries:[
+        {team:'CANELO',sc:'amber',st:'CONCERN',conf:6,rows:[{icon:'INJ',label:'Injury',t:'Hand issue flagged in training camp. Camp denying severity.'},{icon:'TGT',label:'Impact',t:'Canelo has historically fought through hand issues but performance drops.'},{icon:'LNE',label:'Line Move',t:'Odds drifted from -380 to -290 on the concern.'}],
+        trend:{label:'Canelo With Reported Camp Issues -- Historical',stats:[{n:'67%',l:'WIN RATE',c:'amber'},{n:'-0.8',l:'KD RATE',c:'red'},{n:'+$140',l:'DOG VALUE',c:'green'}],bars:[{l:'Canelo wins with camp issue',p:67,c:'bar-amber'},{l:'Canelo wins fully healthy',p:89,c:'bar-green'}],sample:'n=9 fights with reported camp issues'},
+        verdict:'amber',vt:'Canelo wins 89% healthy but only 67% when camp issues are reported. The underdog gains significant value -- monitor until fight week.'},
+        {team:'TANK DAVIS',sc:'green',st:'FULL GO',conf:9,rows:[{icon:'OK',label:'Status',t:'Tank Davis -- full camp, zero injury concerns reported.'},{icon:'TGT',label:'Impact',t:'Tank at 100% is one of the most dangerous fighters in boxing.'}],
+        trend:{label:'Tank Davis Full Camp vs Reported Issues',stats:[{n:'89%',l:'WIN RATE',c:'green'},{n:'71%',l:'KO RATE',c:'green'}],bars:[{l:'Win rate full camp',p:89,c:'bar-green'},{l:'KO or TKO finish',p:71,c:'bar-green'}],sample:'n=27 professional fights tracked'},
+        verdict:'green',vt:'Tank fully healthy is an elite play. 71% KO rate means round betting props have massive value -- lean early rounds.'},
+      ],
+      lines:[
+        {team:'CANELO vs MUNGUIA',sc:'red',st:'SHARP FADE',conf:8,rows:[{icon:'LNE',label:'Move',t:'Canelo drifted from -380 to -290 on camp injury news.'},{icon:'SHP',label:'Sharp $',t:'Sharps loading Munguia +290 -- reverse line movement confirmed.'}],
+        trend:{label:'Boxing Reverse Line Movement Pre-Fight',stats:[{n:'61%',l:'UNDERDOG WINS',c:'green'},{n:'+$890',l:'PROFIT/100',c:'green'}],bars:[{l:'Underdog win rate on RLM',p:61,c:'bar-green'},{l:'Favorite wins on RLM',p:39,c:'bar-red'}],sample:'n=44 boxing RLM spots tracked'},
+        verdict:'amber',vt:'When sharp money moves a boxing line this significantly pre-fight, the underdog wins 61% of the time. Munguia +290 has real value here.'},
+      ],
+      sharp:[
+        {team:'MUNGUIA +290',sc:'green',st:'STEAM',conf:7,rows:[{icon:'SHP',label:'Sharp $',t:'Multiple sharp groups confirmed on Munguia ML.'},{icon:'LNE',label:'Move',t:'Line moved 90 points in Munguia favor on sharp action.'}],
+        trend:{label:'Boxing Sharp Underdog Plays -- Last 3 Years',stats:[{n:'58%',l:'WIN RATE',c:'green'},{n:'+$1,140',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp underdog wins',p:58,c:'bar-green'},{l:'Heavy favorite wins',p:42,c:'bar-red'}],sample:'n=67 sharp boxing underdog plays'},
+        verdict:'green',vt:'Sharp underdogs in boxing win 58% of the time. Combined with the camp injury concern, Munguia +290 is a strong play.'},
+      ],
+      matchups:[
+        {team:'STYLE EDGE',sc:'amber',st:'WATCH',conf:6,rows:[{icon:'TGT',label:'Edge',t:'Munguia has 4-inch reach advantage and fights at higher volume.'},{icon:'TGT',label:'Play',t:'If Canelo hand limits his power, Munguia volume style becomes dangerous.'}],
+        trend:{label:'Canelo vs High-Volume Fighters -- Historical',stats:[{n:'72%',l:'WIN RATE',c:'amber'},{n:'4.2',l:'AVG ROUNDS',c:'amber'}],bars:[{l:'Canelo wins vs high volume',p:72,c:'bar-amber'},{l:'Goes distance vs high volume',p:58,c:'bar-amber'}],sample:'n=11 fights vs high-volume opponents'},
+        verdict:'amber',vt:'Canelo struggles more against high-volume opponents. With a hand concern this matchup gets even more interesting -- monitor fight week closely.'},
+      ],
+    }
+  },
+  f1:{
+    news:[],
+
+
+
+
+
+    intel:{
+      injuries:[
+        {team:'VERSTAPPEN PEN',sc:'red',st:'GRID PENALTY',conf:10,rows:[{icon:'INJ',label:'Penalty',t:'5-place grid penalty for gearbox change. Starts P6.'},{icon:'TGT',label:'Impact',t:'Monaco is the hardest circuit to overtake. Starting P6 massively hurts win chances.'},{icon:'LNE',label:'Odds',t:'Verstappen race win odds moved from -140 to +180 on penalty news.'}],
+        trend:{label:'F1 Grid Penalties at Monaco -- Historical',stats:[{n:'12%',l:'WIN RATE P6+',c:'red'},{n:'71%',l:'P1-3 WIN RATE',c:'green'},{n:'+$340',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Win rate starting P1-3',p:71,c:'bar-green'},{l:'Win rate starting P6+',p:12,c:'bar-red'}],sample:'n=43 Monaco races with grid penalties'},
+        verdict:'red',vt:'Starting P6 at Monaco gives just a 12% win rate historically. Verstappen race win is a strong fade -- look elsewhere for value.'},
+        {team:'LECLERC',sc:'green',st:'MOTIVATED',conf:8,rows:[{icon:'OK',label:'Status',t:'Charles Leclerc -- fully fit, racing at his home grand prix.'},{icon:'TGT',label:'Edge',t:'Leclerc has taken pole at Monaco 3 of the last 4 years.'},{icon:'TGT',label:'Impact',t:'Home crowd, circuit knowledge, and Ferrari pace all align.'}],
+        trend:{label:'Leclerc at Monaco -- Last 5 Seasons',stats:[{n:'75%',l:'POLE RATE',c:'green'},{n:'3.1',l:'AVG FINISH',c:'green'},{n:'+180',l:'CURRENT ODDS',c:'green'}],bars:[{l:'Podium finish rate',p:67,c:'bar-green'},{l:'Pole position rate',p:75,c:'bar-green'}],sample:'n=5 Monaco GP starts for Leclerc'},
+        verdict:'green',vt:'Leclerc at Monaco is one of the most reliable plays in F1. 75% pole rate and strong race pace at his home circuit -- strong value at +180.'},
+      ],
+      weather:[
+        {team:'MONACO RACE',sc:'red',st:'RAIN RISK',conf:7,rows:[{icon:'WX',label:'Forecast',t:'Rain forecast Sunday morning -- race start 9:00 AM local.'},{icon:'TGT',label:'Impact',t:'Wet Monaco is pure chaos. Backmarkers can win in safety car sequences.'},{icon:'LNE',label:'Markets',t:'Longshot race winner odds have shortened significantly on rain forecast.'}],
+        trend:{label:'Wet Monaco Grand Prix Races -- Historical',stats:[{n:'43%',l:'NON-FAVORITE WINS',c:'amber'},{n:'2.8',l:'SAFETY CARS AVG',c:'amber'},{n:'+$420',l:'AVG WINNER ODDS',c:'green'}],bars:[{l:'Non-favorite wins in wet',p:43,c:'bar-amber'},{l:'Pole sitter wins in wet',p:31,c:'bar-red'}],sample:'n=14 wet or mixed Monaco races'},
+        verdict:'amber',vt:'Wet Monaco produces massive upsets -- non-favorites win 43% of the time. Longshot each-way bets have strong historical value in these conditions.'},
+      ],
+      lines:[
+        {team:'NORRIS RACE WIN',sc:'green',st:'SHORTENING',conf:7,rows:[{icon:'LNE',label:'Move',t:'Norris race win odds moved from +320 to +210 on sharp action.'},{icon:'SHP',label:'Sharp $',t:'McLaren dry pace data from practice has sharp money confident.'}],
+        trend:{label:'Sharp F1 Race Winner Pre-Race -- This Season',stats:[{n:'54%',l:'WIN RATE',c:'green'},{n:'+$680',l:'PROFIT/100',c:'green'}],bars:[{l:'Sharp-backed driver wins',p:54,c:'bar-green'},{l:'Public-backed favorite wins',p:46,c:'bar-amber'}],sample:'n=7 F1 races this season with sharp movement'},
+        verdict:'green',vt:'Sharp money on F1 race winners has hit 54% this season. Norris at +210 with strong pace data and Verstappen penalized is legitimate value.'},
+      ],
+      matchups:[
+        {team:'HAMILTON vs RUSSELL',sc:'amber',st:'WATCH',conf:5,rows:[{icon:'TGT',label:'Matchup',t:'Internal Mercedes battle -- Russell qualified P3, Hamilton P7.'},{icon:'TGT',label:'Play',t:'Russell head-to-head vs Hamilton is a strong prop bet this weekend.'}],
+        trend:{label:'Russell vs Hamilton H2H at Street Circuits',stats:[{n:'64%',l:'RUSSELL WINS H2H',c:'green'},{n:'71%',l:'BEATS QUALI POS',c:'green'}],bars:[{l:'Russell beats Hamilton H2H',p:64,c:'bar-green'},{l:'Russell improves on qualifying',p:71,c:'bar-green'}],sample:'n=11 street circuit H2H battles this season'},
+        verdict:'green',vt:'Russell beats Hamilton head-to-head 64% of the time at street circuits and tends to outperform his qualifying position. Strong H2H prop value.'},
+      ],
+    }
+  },
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// --- STATE ---
+let sport='nfl', itab='injuries', league='epl', filter='all';
+let chatHistory=[], chatBusy=false, inited=false;
+
+// --- SPORT TABS ---
+function buildSportBar(){
+  document.getElementById('sportBar').innerHTML=SPORTS.map(s=>`
+    <div class="sp-tab ${s.id===sport?'active':''}" onclick="setSport('${s.id}',this)">
+      ${s.label} <span class="sp-count">${s.count}</span>
+    </div>`).join('');
+}
+
+function setSport(s,el){
+  sport=s; itab='injuries'; filter='all';
+  document.querySelectorAll('.sp-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderAll();
+}
+
+// --- SCHEDULE ---
+function renderSchedule(){
+  const games=SCHEDS[sport]||[];
+  document.getElementById('schedule').innerHTML=games.map(g=>`
+    <div class="sched-game">
+      ${g.live?`<span class="sched-live">LIVE</span>`:''}
+      <span class="sched-teams">${g.t}</span>
+      <span class="sched-time">${g.time}</span>
+      ${g.a?`<span class="sched-alert"></span>`:''}
+    </div>`).join('')||'<span style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:0 12px">No games today</span>';
+}
+
+// --- NEWS ---
+function renderNews(){
+  const news=DATA[sport]?.news||[];
+  const tags=['all',...new Set(news.map(n=>n.tag))];
+  document.getElementById('filters').innerHTML=tags.map(t=>`
+    <div class="filter-btn ${filter===t?'on':''}" onclick="setFilter('${t}')">${FMAP[t]||t.toUpperCase()}</div>`).join('');
+  const items=filter==='all'?news:news.filter(n=>n.tag===filter);
+  document.getElementById('feed').innerHTML=items.map(n=>`
+    <div class="feed-item ${n.type}">
+      <div class="fi-meta"><span class="fi-tag tag-${n.tag}">${n.label}</span><span class="fi-time">${n.time} ago</span></div>
+      <div class="fi-headline">${n.h}</div>
+      <div class="fi-body">${n.b}</div>
+    </div>`).join('')||'<div style="padding:14px;color:var(--text3);font-size:11px;text-align:center;font-family:var(--mono)">No alerts in this category</div>';
+}
+
+function setFilter(f){ filter=f; renderNews(); }
+
+// --- INTEL TABS ---
+function renderIntelTabs(){
+  document.getElementById('intelBar').innerHTML=ITABS.map(t=>`
+    <div class="ib-tab ${itab===t.id?'active':''}" onclick="setItab('${t.id}',this)">
+      <span class="tab-badge">${t.icon}</span>${t.label}
+    </div>`).join('');
+  const lb=document.getElementById('leagueBar');
+  if(sport==='soccer'){
+    lb.style.display='flex';
+    lb.innerHTML=LEAGUES.map(l=>`
+      <div class="lb-btn ${league===l.id?'active':''}" onclick="setLeague('${l.id}',this)">${l.flag} ${l.label}</div>`).join('');
+  } else { lb.style.display='none'; }
+}
+
+function setItab(id,el){
+  itab=id;
+  document.querySelectorAll('.ib-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderCards();
+}
+
+function setLeague(id,el){
+  league=id;
+  document.querySelectorAll('.lb-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// --- SVG ICON SYSTEM ---
+// Clean single-stroke SVG icons -- no emojis anywhere
 const ICONS = {
   // Card row icons
   '': `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h1a2 2 0 0 1 2 2v.5a2 2 0 0 0 2 2H14a2 2 0 0 1 2 2V13a2 2 0 0 1-2 2h-.5a2 2 0 0 0-2 2V18"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>`,
@@ -2590,18 +2549,124 @@ function renderCards(){
     return;
   }
 
-  // For other tabs use sample data but show "fetching" message first
-  const cards=DATA[sport]?.intel?.[itab]||[];
+  // Use AI to generate real intel cards
+  renderAICards(sport, itab, league);
+}
 
-  if(!cards.length){
-    body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center"><div style="font-size:28px;opacity:0.15">--</div>No ${itab} data for ${sport.toUpperCase()}${ln} right now.<br>Check back during the season or when games are scheduled.</div>`;
+// --- AI INTEL CARD GENERATOR ---
+
+// Cache for AI-generated cards so we don't regenerate every time
+const aiCardCache = {};
+const aiCardTimestamps = {};
+const AI_CARD_TTL = 24 * 60 * 60 * 1000; // 24 hours - cards persist all day
+
+function isAiCacheValid(key) {
+  if(!aiCardCache[key]) return false;
+  return (Date.now() - (aiCardTimestamps[key] || 0)) < AI_CARD_TTL;
+}
+
+async function generateAICards(sportName, tabName, leagueName) {
+  const cacheKey = `ai-${sportName}-${tabName}-${leagueName}`;
+  if(isAiCacheValid(cacheKey)) {
+    return aiCardCache[cacheKey];
+  }
+
+  const sportLabel = sportName === 'soccer' ? `${sportName} ${leagueName || 'EPL'}` : sportName;
+  const today = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  const tabFocus = {
+    injuries: 'known injury situations and how teams historically perform without key players. Only mention injuries you are confident are real based on your training data',
+    lines: 'historical line movement patterns and sharp money tendencies for currently active teams',
+    sharp: 'sharp money patterns, steam moves, and public vs sharp betting tendencies with real historical data',
+    weather: 'how weather historically impacts this sport and these teams specifically',
+    fatigue: 'back to back situations, travel fatigue, and rest advantages with real ATS historical data',
+    revenge: 'revenge game spots, historical motivational angles, and teams with strong revenge game records',
+    matchups: 'key matchup edges, historical head to head records, and specific betting angles',
+    suspension: 'suspension situations and how teams historically perform with key players suspended',
+    rotation: 'coaching tendencies, rotation patterns, and how lineup changes affect betting',
+    condition: 'player conditioning situations and their historical betting impact'
+  };
+
+  const prompt = `Today is ${today}. Generate 3 intel cards for ${sportLabel.toUpperCase()} - ${tabName.toUpperCase()}.
+
+ACCURACY IS CRITICAL:
+- Kevin De Bruyne plays for AC MILAN not Man City
+- Only use NBA teams still active in the current 2025 playoffs - eliminated teams like Lakers, Nuggets, 76ers should NOT appear
+- Only mention injuries or suspensions you are CERTAIN about from your training data
+- If unsure about a current situation, use historical trends instead - never guess
+- Use correct current rosters - verify any transfers that happened before your knowledge cutoff
+- Only use teams currently competing in ${sportLabel}
+
+Return ONLY this JSON structure, no other text:
+{"cards":[{"team":"TEAM NAME","sc":"green","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"detail text"},{"icon":"TGT","label":"IMPACT","t":"impact text"},{"icon":"LNE","label":"LINE","t":"line text"}],"trend":{"label":"TREND TITLE","stats":[{"n":"67%","l":"LABEL","c":"green"},{"n":"43%","l":"LABEL","c":"red"}],"bars":[{"l":"label","p":67,"c":"bar-green"},{"l":"label","p":43,"c":"bar-red"}],"sample":"n=X games"},"verdict":"green","vt":"1-2 sentence betting verdict."}]}
+
+Rules: sc/verdict = green|red|amber. conf = 1-10. icon = INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c = bar-green|bar-red|bar-amber. p = 0-100.
+Focus on: ${tabFocus[tabName] || 'relevant betting intelligence using only verified historical data'}
+Confidence: mostly 5-8, only 9-10 for very strong confirmed spots.`;
+
+  try {
+    const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20251001',
+        max_tokens: 2000,
+        system: 'You are a sports data API. Return only valid JSON with no other text.',
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+
+    const data = await res.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+
+    // Parse the JSON response
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    if(parsed.cards && parsed.cards.length > 0) {
+      aiCardCache[cacheKey] = parsed.cards;
+      aiCardTimestamps[cacheKey] = Date.now();
+      return parsed.cards;
+    }
+  } catch(e) {
+    console.warn('AI card generation error:', e);
+  }
+  return null;
+}
+
+async function renderAICards(sportName, tabName, leagueName) {
+  const body = document.getElementById('intelBody');
+  const ln = sportName === 'soccer' ? ` -- ${LEAGUES.find(l => l.id === leagueName)?.label || ''}` : '';
+
+  // Show loading state
+  body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px">
+    <div style="display:flex;gap:4px">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span>
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span>
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span>
+    </div>
+    <div>Scout is analyzing ${sportName.toUpperCase()}${ln} ${tabName.toUpperCase()}...</div>
+  </div>`;
+
+  const cards = await generateAICards(sportName, tabName, leagueName);
+
+  if(!cards || !cards.length) {
+    body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
+      <div style="font-size:28px;opacity:0.15">--</div>
+      No ${tabName} data for ${sportName.toUpperCase()}${ln} right now.
+    </div>`;
     return;
   }
 
-  body.innerHTML=`
-    <div class="intel-section-label">${sport.toUpperCase()}${ln} . ${itab.toUpperCase()}</div>
+  // Render the AI-generated cards using the same card renderer
+  const VC = {green:'v-green',red:'v-red',amber:'v-amber'};
+  const SC = {green:'dot-green color-green',red:'dot-red color-red',amber:'dot-amber color-amber'};
+  const CF = {green:'bar-green',red:'bar-red',amber:'bar-amber'};
+
+  body.innerHTML = `
+    <div class="intel-section-label">${sportName.toUpperCase()}${ln} . ${tabName.toUpperCase()} <span style="color:var(--green);font-size:9px;margin-left:8px">AI-POWERED</span></div>
     <div class="cards-grid">
-      ${cards.map(c=>`
+      ${cards.map(c => `
         <div class="i-card">
           <div class="i-card-top">
             <div class="i-team">${c.team}</div>
@@ -2616,13 +2681,13 @@ function renderCards(){
             </div>
           </div>
           <div class="i-card-body">
-            ${(c.rows||[]).map(r=>`
+            ${(c.rows||[]).map(r => `
               <div class="i-row">
                 <div class="i-icon">${getIcon(r.icon)}</div>
                 <div><div class="i-row-label">${r.label}</div><div class="i-row-text">${r.t}</div></div>
               </div>`).join('')}
           </div>
-          ${buildTrend(c.trend)}
+          ${c.trend ? buildTrend(c.trend) : ''}
           <div class="i-verdict ${VC[c.verdict]||'v-amber'}">${c.vt}</div>
         </div>`).join('')}
     </div>`;
