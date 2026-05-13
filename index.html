@@ -2714,29 +2714,53 @@ async function generateAICards(sportName, tabName, leagueName) {
   const sportLabel = sportName === 'soccer' ? `soccer ${leagueName || 'epl'}` : sportName;
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
 
-  const tabInstructions = {
-    injuries: `Generate 3 injury intel cards for ${sportLabel} showing teams with known injury concerns, their historical ATS performance without key players, and betting verdicts. Use your training knowledge about this sport - focus on historically injury-prone positions and how teams typically perform short-handed.`,
-    lines: `Generate 3 line movement intel cards for ${sportLabel} showing typical sharp money patterns, historically valuable line spots, and betting angles. Focus on situational spots like division games, revenge games, or teams with strong home/away splits.`,
-    sharp: `Generate 3 sharp money intel cards for ${sportLabel} showing historically strong fade-the-public spots, steam move patterns, and reverse line movement situations that have been profitable over multiple seasons.`,
-    weather: `Generate 3 weather impact intel cards for ${sportLabel} showing how wind, rain, cold, and heat historically affect scoring in this sport. Include specific thresholds like games with 15mph+ wind, rain over 0.5 inches, or temperatures below 35F and their impact on totals.`,
-    fatigue: `Generate 3 fatigue intel cards for ${sportLabel} showing back to back situations, short rest spots, and heavy travel schedules. Include historical ATS data for teams in these situations.`,
-    revenge: `Generate 3 revenge game intel cards for ${sportLabel} showing historically strong revenge spots. Include how teams perform after blowout losses, playoff eliminations, or against division rivals they lost to recently.`,
-    matchups: `Generate 3 matchup edge intel cards for ${sportLabel} showing historically valuable style mismatches, pace advantages, and tactical edges. Be specific about what types of matchups have been most exploitable.`,
-    suspension: `Generate 3 suspension impact intel cards for ${sportLabel} showing how teams historically perform when key players are suspended, including ATS data and betting angles.`,
-    rotation: `Generate 3 rotation intel cards for ${sportLabel} showing how lineup changes, load management, and coach rotation decisions historically affect ATS performance.`,
-    condition: `Generate 3 player condition intel cards for ${sportLabel} showing how teams perform when stars return from injury on restricted minutes or when key players are less than 100%.`
+  const tabSearch = {
+    injuries: `current ${sportLabel} injury report ${today} upcoming games only`,
+    lines: `${sportLabel} betting lines odds movement ${today}`,
+    sharp: `${sportLabel} sharp money betting percentages public vs sharp ${today}`,
+    weather: `${sportLabel} upcoming games weather forecast ${today}`,
+    fatigue: `${sportLabel} schedule back to back rest days upcoming games`,
+    revenge: `${sportLabel} upcoming games revenge spots motivation angles`,
+    matchups: `${sportLabel} upcoming games matchup analysis betting edges`,
+    suspension: `${sportLabel} player suspensions bans upcoming games ${today}`,
+    rotation: `${sportLabel} lineup changes load management upcoming games`,
+    condition: `${sportLabel} player fitness injury returns upcoming games`,
   };
 
-  const instruction = tabInstructions[tabName] || `Generate 3 ${tabName} intel cards for ${sportLabel} with historical betting data and verdicts.`;
+  const tabFocus = {
+    injuries: `Find players who are currently injured or doubtful for UPCOMING games only. Do NOT include injuries that have already been resolved or players who have returned. Only show injuries affecting games in the next 7 days.`,
+    lines: `Find current betting lines and recent line movement for upcoming games. Use real current odds.`,
+    sharp: `Find current sharp money signals, steam moves, and public vs sharp betting splits for upcoming games.`,
+    weather: `Find actual weather forecasts for upcoming outdoor games. Include specific wind speed, temperature, precipitation.`,
+    fatigue: `Find teams playing on short rest or back to backs in upcoming schedule. Show actual game dates.`,
+    revenge: `Find upcoming games where a team has a clear revenge motivation from a recent loss or elimination.`,
+    matchups: `Find key matchup edges for the most important upcoming games this week.`,
+    suspension: `Find players who are CURRENTLY suspended or banned for upcoming games. Do NOT include resolved suspensions.`,
+    rotation: `Find current lineup news, load management decisions, or rotation changes for upcoming games.`,
+    condition: `Find players returning from injury on limited minutes or with fitness concerns for upcoming games.`,
+  };
 
-  const msg = `${instruction}
+  const searchHint = tabSearch[tabName] || `${sportLabel} ${tabName} upcoming games ${today}`;
+  const focus = tabFocus[tabName] || `Focus on upcoming games only.`;
 
-Use accurate historical data from your training. Be specific with percentages and sample sizes.
+  const msg = `Today is ${today}. Search the web for: "${searchHint}"
 
-Return ONLY this JSON (no other text, no markdown, no backticks):
-{"cards":[{"team":"TEAM OR SITUATION NAME","sc":"amber","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"specific detail with real data"},{"icon":"TGT","label":"IMPACT","t":"betting impact"},{"icon":"LNE","label":"TREND","t":"historical stat"}],"trend":{"label":"TREND TITLE -- X SEASONS","stats":[{"n":"41%","l":"ATS COVER","c":"red"},{"n":"58%","l":"WIN RATE","c":"green"}],"bars":[{"l":"Situation A","p":41,"c":"bar-red"},{"l":"Situation B","p":62,"c":"bar-green"}],"sample":"n=X games tracked"},"verdict":"red","vt":"Specific actionable betting verdict."}]}
+${focus}
 
-Rules: sc/verdict=green|red|amber. conf=1-10. icon=INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c=bar-green|bar-red|bar-amber. p=0-100. Generate exactly 3 cards.`;
+CRITICAL RULES:
+- Only use information from your web search results
+- Only include injuries/suspensions affecting UPCOMING games, not past ones
+- Use correct current rosters - verify players are still on these teams
+- If you cannot find real current data for a card, skip it rather than make something up
+- Cards must be about upcoming games in the next 7 days only
+- Show the same cards to all users - base everything on publicly available data
+
+Generate 3 intel cards for ${sportLabel.toUpperCase()} ${tabName.toUpperCase()} based on your search results.
+
+Return ONLY this JSON (no other text):
+{"cards":[{"team":"REAL TEAM NAME","sc":"amber","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"specific real detail from search"},{"icon":"TGT","label":"IMPACT","t":"betting impact"},{"icon":"LNE","label":"DATA","t":"relevant stat or line"}],"trend":{"label":"HISTORICAL TREND","stats":[{"n":"41%","l":"COVER RATE","c":"red"},{"n":"58%","l":"WIN RATE","c":"green"}],"bars":[{"l":"Situation A","p":41,"c":"bar-red"},{"l":"Situation B","p":62,"c":"bar-green"}],"sample":"n=X games"},"verdict":"red","vt":"Actionable verdict for upcoming game only."}]}
+
+Rules: sc/verdict=green|red|amber. conf=1-10. icon=INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c=bar-green|bar-red|bar-amber.`;
 
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
