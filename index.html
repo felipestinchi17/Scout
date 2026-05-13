@@ -1792,47 +1792,18 @@ function parseESPNInjuries(data, sport) {
   if(!data) return [];
   const items = [];
 
-  // Format 1: data.injuries array (older endpoint)
+  // Only use data that has real player names (not team names)
   if(data.injuries && Array.isArray(data.injuries)) {
     data.injuries.slice(0,8).forEach(inj => {
-      const player = inj.athlete?.displayName || inj.athlete?.fullName || inj.displayName || '';
-      if(!player) return;
+      const player = inj.athlete?.displayName || inj.athlete?.fullName || '';
+      // Skip if no real player name
+      if(!player || player.length < 3) return;
       const team = inj.team?.displayName || inj.team?.shortDisplayName || '';
-      const status = inj.status || inj.type?.description || 'Questionable';
-      const detail = inj.details?.detail || inj.details?.fantasyStatus?.description || inj.shortComment || 'Monitor status';
+      const status = inj.status || 'Questionable';
+      const detail = inj.details?.detail || inj.shortComment || '';
       const type = status.toLowerCase().includes('out') ? 'urgent' : 'warn';
       items.push({ type, tag:'injury', label:'INJ', time:'Live',
-        h:`${team ? team+': ' : ''}${player} ${status.toUpperCase()}`, b: detail, live: true });
-    });
-  }
-
-  // Format 2: data.season.types[].groups[].athletes (newer endpoint)
-  if(data.season?.types) {
-    data.season.types.forEach(t => {
-      (t.groups || []).forEach(g => {
-        (g.athletes || []).slice(0, 3).forEach(a => {
-          const player = a.athlete?.displayName || a.athlete?.fullName || '';
-          if(!player) return;
-          const team = a.athlete?.team?.shortDisplayName || '';
-          const status = a.injuries?.[0]?.status || 'Questionable';
-          const detail = a.injuries?.[0]?.details?.detail || 'Monitor status';
-          const type = status.toLowerCase().includes('out') ? 'urgent' : 'warn';
-          items.push({ type, tag:'injury', label:'INJ', time:'Live',
-            h:`${team ? team+': ' : ''}${player} ${status.toUpperCase()}`, b: detail, live: true });
-        });
-      });
-    });
-  }
-
-  // Format 3: flat array of athlete objects
-  if(Array.isArray(data) && data.length > 0 && data[0].athlete) {
-    data.slice(0,8).forEach(a => {
-      const player = a.athlete?.displayName || '';
-      if(!player) return;
-      const team = a.team?.shortDisplayName || '';
-      const status = a.status || 'Questionable';
-      items.push({ type:'warn', tag:'injury', label:'INJ', time:'Live',
-        h:`${team ? team+': ' : ''}${player} ${status.toUpperCase()}`, b:'Monitor status', live: true });
+        h:`${team ? team+': ' : ''}${player} — ${status}`, b: detail, live: true });
     });
   }
 
@@ -1952,18 +1923,15 @@ async function loadLiveData(sport, tab, league) {
     if(schedData) results.schedule = parseESPNSchedule(schedData);
   } catch(e){}
 
-  // Fetch news - run in parallel for speed
-  const [injData, newsData] = await Promise.allSettled([
-    fetchESPNInjuries(sport),
-    fetchESPNNews(sport),
-  ]);
-
-  if(injData.status === 'fulfilled' && injData.value) {
-    results.news.push(...parseESPNInjuries(injData.value, sport));
-  }
-  if(newsData.status === 'fulfilled' && newsData.value) {
-    results.news.push(...parseESPNNews(newsData.value));
-  }
+  // Fetch ESPN news only (not injuries - those are handled separately in injury tab)
+  try {
+    const newsData = await fetchESPNNews(sport);
+    if(newsData) {
+      const parsed = parseESPNNews(newsData);
+      // Only add items that have real headlines not team names
+      parsed.filter(n => n.h && n.h.length > 10 && !n.h.includes('QUESTIONABLE')).forEach(n => results.news.push(n));
+    }
+  } catch(e){}
 
   // Fetch NewsAPI for additional breaking news if enabled
   if(USE.NEWS && CFG.NEWS_API_KEY && CFG.NEWS_API_KEY !== 'YOUR_NEWS_API_KEY') {
@@ -2594,11 +2562,25 @@ const CF={green:'bar-green',red:'bar-red',amber:'bar-amber'};
 
 function renderCards(){
   const body=document.getElementById('intelBody');
-  const cards=DATA[sport]?.intel?.[itab]||[];
   const ln=sport==='soccer'?` -- ${LEAGUES.find(l=>l.id===league)?.label||''}`:'';
 
+  // Check if we have live data cached for this sport/tab
+  const cacheKey = sport + '-' + itab + '-' + league;
+  const hasLiveData = isCacheValid(cacheKey) && (
+    (itab === 'lines' && liveCache[cacheKey]?.cards?.length > 0)
+  );
+
+  // For lines tab with live data - skip sample data entirely
+  if(itab === 'lines' && hasLiveData) {
+    renderLiveCards(liveCache[cacheKey].cards);
+    return;
+  }
+
+  // For other tabs use sample data but show "fetching" message first
+  const cards=DATA[sport]?.intel?.[itab]||[];
+
   if(!cards.length){
-    body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center"><div style="font-size:28px;opacity:0.15">--</div>No ${itab} alerts for ${sport.toUpperCase()}${ln} right now</div>`;
+    body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center"><div style="font-size:28px;opacity:0.15">--</div>No ${itab} data for ${sport.toUpperCase()}${ln} right now.<br>Check back during the season or when games are scheduled.</div>`;
     return;
   }
 
@@ -2688,8 +2670,22 @@ async function sendMsg(){
 }
 
 // --- INIT ---
-// Live data cache
-let liveCache = {};
+// Live data cache - persists for the session
+// Key format: sport-itab-league
+const liveCache = {};
+const liveCacheTimestamps = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function isCacheValid(key) {
+  if(!liveCache[key]) return false;
+  const age = Date.now() - (liveCacheTimestamps[key] || 0);
+  return age < CACHE_TTL;
+}
+
+function setCache(key, data) {
+  liveCache[key] = data;
+  liveCacheTimestamps[key] = Date.now();
+}
 
 async function renderAll(){
   renderSchedule();
@@ -2703,32 +2699,29 @@ async function renderAll(){
 // Fetch live data and merge into the UI when ready
 async function fetchAndMerge(){
   const cacheKey = sport + '-' + itab + '-' + league;
-  if(liveCache[cacheKey]) return; // already fetched this session
+  if(isCacheValid(cacheKey)) {
+    // Use cached data
+    applyLiveData(liveCache[cacheKey]);
+    return;
+  }
 
   try {
     const live = await loadLiveData(sport, itab, league);
-    liveCache[cacheKey] = live;
+    setCache(cacheKey, live);
+    applyLiveData(live);
 
-    // If we got live schedule data, update the strip
-    if(live.schedule && live.schedule.length > 0){
-      renderScheduleFromLive(live.schedule);
-    }
-
-    // If we got live news, prepend to the feed
-    if(live.news && live.news.length > 0){
-      prependLiveNews(live.news);
-    }
-
-    // If we got live cards (odds), replace the intel content
-    if(live.cards && live.cards.length > 0 && (itab === 'lines' || itab === 'odds')){
-      renderLiveCards(live.cards);
-    }
-
-    // For injuries tab - fetch real player-level injury data
+    // For injuries tab - also try to fetch real player-level injury data
     if(itab === 'injuries' && ESPN_SPORT_MAP[sport]){
       fetchRealInjuries(sport);
     }
   } catch(e){ console.warn('Live data merge error:', e); }
+}
+
+function applyLiveData(live) {
+  if(!live) return;
+  if(live.schedule && live.schedule.length > 0) renderScheduleFromLive(live.schedule);
+  if(live.news && live.news.length > 0) prependLiveNews(live.news);
+  if(live.cards && live.cards.length > 0 && itab === 'lines') renderLiveCards(live.cards);
 }
 
 function renderLiveInjuryCards(injuryNews){
@@ -2780,17 +2773,21 @@ function renderScheduleFromLive(games){
 
 function prependLiveNews(newsItems){
   const feed = document.getElementById('feed');
-  if(!feed) return;
+  if(!feed || !newsItems.length) return;
+
+  // Remove any previously injected live items to avoid duplicates
+  feed.querySelectorAll('.live-injected').forEach(el => el.remove());
+
   const liveHtml = newsItems.map(n => `
-    <div class="feed-item ${n.type}">
+    <div class="feed-item ${n.type} live-injected">
       <div class="fi-meta">
         <span class="fi-tag tag-${n.tag}">${n.label}</span>
         <span class="fi-time" style="color:var(--green)">LIVE</span>
       </div>
       <div class="fi-headline">${n.h}</div>
-      <div class="fi-body">${n.b}</div>
+      <div class="fi-body">${n.b || ''}</div>
     </div>`).join('');
-  feed.innerHTML = liveHtml + feed.innerHTML;
+  feed.insertAdjacentHTML('afterbegin', liveHtml);
 }
 
 function renderLiveCards(cards){
