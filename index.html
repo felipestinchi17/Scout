@@ -1669,10 +1669,38 @@ async function fetchESPNInjuries(sport) {
   if(!ESPN_SPORT_MAP[sport]) return null;
   try {
     const {sport: s, league: l} = ESPN_SPORT_MAP[sport];
-    const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/injuries`;
+    // Use the scoreboard endpoint which includes injury data with player names
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/scoreboard`;
     const res = await fetch(url);
     if(!res.ok) return null;
-    return await res.json();
+    const data = await res.json();
+    // Extract injuries from each game's competitors
+    const injuries = [];
+    (data.events || []).forEach(ev => {
+      (ev.competitions || []).forEach(comp => {
+        (comp.competitors || []).forEach(team => {
+          const teamName = team.team?.shortDisplayName || team.team?.displayName || '';
+          (team.injuries || []).forEach(inj => {
+            const player = inj.athlete?.displayName || inj.athlete?.shortName || '';
+            if(player) {
+              injuries.push({
+                athlete: { displayName: player },
+                team: { displayName: teamName },
+                status: inj.status || 'Questionable',
+                details: { detail: inj.description || '' }
+              });
+            }
+          });
+        });
+      });
+    });
+    if(injuries.length > 0) return { injuries };
+
+    // Fallback: try the dedicated injuries endpoint
+    const url2 = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/injuries`;
+    const res2 = await fetch(url2);
+    if(!res2.ok) return null;
+    return await res2.json();
   } catch(e) { console.warn('ESPN injuries error:', e); return null; }
 }
 
@@ -1684,7 +1712,9 @@ async function fetchESPNNews(sport) {
     const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/news?limit=20`;
     const res = await fetch(url);
     if(!res.ok) return null;
-    return await res.json();
+    const data = await res.json();
+    // Also try to get injury-specific news
+    return data;
   } catch(e) { console.warn('ESPN news error:', e); return null; }
 }
 
@@ -2634,18 +2664,19 @@ async function fetchAndMerge(){
       renderScheduleFromLive(live.schedule);
     }
 
-    // If we got live news, prepend to the feed AND replace injury cards
+    // If we got live news, prepend to the feed
     if(live.news && live.news.length > 0){
       prependLiveNews(live.news);
-      // If we are on injuries tab and have real injury news, replace the cards
-      if(itab === 'injuries' && live.news.filter(n=>n.tag==='injury').length > 0){
-        renderLiveInjuryCards(live.news.filter(n=>n.tag==='injury'));
-      }
     }
 
     // If we got live cards (odds), replace the intel content
     if(live.cards && live.cards.length > 0 && (itab === 'lines' || itab === 'odds')){
       renderLiveCards(live.cards);
+    }
+
+    // For injuries tab - fetch real player-level injury data
+    if(itab === 'injuries' && ESPN_SPORT_MAP[sport]){
+      fetchRealInjuries(sport);
     }
   } catch(e){ console.warn('Live data merge error:', e); }
 }
@@ -2741,6 +2772,90 @@ function renderLiveCards(cards){
           ${c.trend ? buildTrend(c.trend) : ''}
           <div class="i-verdict ${VC[c.verdict] || 'v-green'}">${c.vt}</div>
         </div>`).join('')}
+    </div>`;
+}
+
+// Fetch real player-level injuries using ESPN team roster endpoints
+async function fetchRealInjuries(sport) {
+  if(!ESPN_SPORT_MAP[sport]) return;
+  const {sport: s, league: l} = ESPN_SPORT_MAP[sport];
+  try {
+    // Get teams first
+    const teamsRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/teams?limit=32`);
+    if(!teamsRes.ok) return;
+    const teamsData = await teamsRes.json();
+    const teams = (teamsData.sports?.[0]?.leagues?.[0]?.teams || []).slice(0, 8);
+
+    const allInjuries = [];
+    // Fetch injuries for first 8 teams in parallel
+    await Promise.all(teams.map(async (t) => {
+      const teamId = t.team?.id;
+      const teamName = t.team?.shortDisplayName || t.team?.displayName || '';
+      if(!teamId) return;
+      try {
+        const injRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/teams/${teamId}/injuries`);
+        if(!injRes.ok) return;
+        const injData = await injRes.json();
+        (injData.injuries || []).forEach(inj => {
+          const player = inj.athlete?.displayName || inj.athlete?.fullName || '';
+          if(!player) return;
+          const status = inj.status || 'Questionable';
+          const detail = inj.details?.detail || inj.shortComment || '';
+          allInjuries.push({ player, team: teamName, status, detail });
+        });
+      } catch(e){}
+    }));
+
+    if(allInjuries.length > 0) {
+      renderRealInjuryCards(allInjuries, sport);
+    }
+  } catch(e){ console.warn('Real injuries fetch error:', e); }
+}
+
+function renderRealInjuryCards(injuries, sport) {
+  const body = document.getElementById('intelBody');
+  if(!body || !injuries.length) return;
+  const ln = sport==='soccer' ? ` -- ${LEAGUES.find(l=>l.id===league)?.label||''}` : '';
+
+  // Group by team
+  const byTeam = {};
+  injuries.forEach(inj => {
+    if(!byTeam[inj.team]) byTeam[inj.team] = [];
+    byTeam[inj.team].push(inj);
+  });
+
+  const teams = Object.keys(byTeam);
+  body.innerHTML = `
+    <div class="intel-section-label">${sport.toUpperCase()}${ln} . INJURIES - LIVE</div>
+    <div class="cards-grid">
+      ${teams.map(team => {
+        const players = byTeam[team];
+        const hasOut = players.some(p => p.status.toLowerCase().includes('out'));
+        const sc = hasOut ? 'red' : 'amber';
+        const SC2 = {green:'dot-green color-green',red:'dot-red color-red',amber:'dot-amber color-amber'};
+        return `
+        <div class="i-card">
+          <div class="i-card-top">
+            <div class="i-team">${team.toUpperCase()}</div>
+            <div class="i-card-right">
+              <div class="i-status ${SC2[sc]}">
+                <div class="i-dot"></div>${hasOut ? 'OUT' : 'QUESTIONABLE'}
+              </div>
+            </div>
+          </div>
+          <div class="i-card-body">
+            ${players.slice(0,4).map(p => `
+              <div class="i-row">
+                <div class="i-icon"><span class="mono-badge">INJ</span></div>
+                <div>
+                  <div class="i-row-label">INJURY</div>
+                  <div class="i-row-text">${p.player} — ${p.status}${p.detail ? '. '+p.detail : '.'}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+          <div class="i-verdict v-${sc}">Monitor official injury report before betting on ${team}.</div>
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
