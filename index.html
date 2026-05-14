@@ -3077,11 +3077,14 @@ Return ONLY this JSON (no other text):
 
 Rules: sc/verdict=green|red|amber. conf=1-10. icon=INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c=bar-green|bar-red|bar-amber.`;
 
+  const dateStr = new Date().toISOString().split('T')[0];
+  const serverCacheKey = 'cards-' + sportName + '-' + tabName + '-' + leagueName + '-' + dateStr;
+
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({messages:[{role:'user', content:msg}]})
+      body: JSON.stringify({messages:[{role:'user', content:msg}], cacheKey: serverCacheKey})
     });
 
     const raw = await res.text();
@@ -3792,8 +3795,15 @@ async function loadBestBets(force, targetSport) {
 
   const msg = 'Today is ' + today + '.\n\n' + gamesContext + '\n\nFor each game provide: the best bet (spread, moneyline, or total), confidence 1-10, and one sentence reason based on current form, injuries, or matchup edge.\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Exact matchup from the list","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"One sentence reason.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only for conf 8+. type=SPREAD|MONEYLINE|TOTAL. Only pick games from the list above.';
 
+  const dateStr = new Date().toISOString().split('T')[0];
+  const serverBBKey = `bestbets-${s}-${league}-${dateStr}`;
+
   try {
-    const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages:[{role:'user',content:msg}]})});
+    const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'user',content:msg}], cacheKey: serverBBKey})
+    });
     const data = JSON.parse(await res.text());
     if(data.error) { renderBBError(); return; }
     const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
