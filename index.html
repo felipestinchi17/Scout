@@ -1,8 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+(function(){
+  if(window.location.hash === '#app') {
+    document.write('<style>#landingPage{display:none!important}</style>');
+  }
+})();
+</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzA4MDkwYyIvPgogIDxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjUiIGZpbGw9IiMxMGI5ODEiLz4KPC9zdmc+">  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SCOUT — Sports Intelligence v3</title>
 <meta name="description" content="Real-time sports intelligence for serious bettors. Injuries, sharp money, line movement and historical trends.">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700;900&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -1557,8 +1564,23 @@ footer {
   <footer>
     <div class="footer-logo">Scout</div>
     <div class="footer-copy">© 2025 Scout Sports Intelligence</div>
+    <div class="footer-links">
+      <a href="#" onclick="showPolicy('privacy');return false;">Privacy Policy</a>
+      <span style="color:var(--line2)">·</span>
+      <a href="#" onclick="showPolicy('terms');return false;">Terms of Service</a>
+      <span style="color:var(--line2)">·</span>
+      <a href="mailto:felipestinchi17@gmail.com">Contact Us</a>
+    </div>
     <div class="footer-disc">For entertainment and research purposes only. Not financial advice. Please gamble responsibly. 21+</div>
   </footer>
+
+  <!-- POLICY MODAL -->
+  <div id="policyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:40px 20px;">
+    <div style="max-width:800px;margin:0 auto;background:#fff;border-radius:12px;padding:40px;position:relative;color:#333;font-family:Arial,sans-serif;">
+      <button onclick="document.getElementById('policyModal').style.display='none'" style="position:absolute;top:16px;right:16px;background:#f0f0f0;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+      <div id="policyContent"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ━━━ DASHBOARD ━━━ -->
@@ -2131,13 +2153,50 @@ async function loadLiveData(sport, tab, league) {
 
 // --- NAV ---
 function openDash(){
-  // Add #app to URL and open in new tab
-  const url = window.location.href.split('#')[0] + '#app';
-  window.open(url, '_blank');
+  const landing = document.getElementById('landingPage');
+  const dash = document.getElementById('dashboardPage');
+  // Fade out landing
+  landing.style.transition = 'opacity 0.3s ease';
+  landing.style.opacity = '0';
+  setTimeout(() => {
+    landing.style.display = 'none';
+    landing.style.opacity = '1';
+    landing.style.transition = '';
+    dash.style.display = 'flex';
+    dash.style.opacity = '0';
+    dash.style.transition = 'opacity 0.3s ease';
+    window.location.hash = '#app';
+    initDash();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        dash.style.opacity = '1';
+      });
+    });
+    setTimeout(() => {
+      dash.style.transition = '';
+    }, 350);
+  }, 300);
 }
 function showLanding(){
-  document.getElementById('dashboardPage').style.display='none';
-  document.getElementById('landingPage').style.display='flex';
+  const landing = document.getElementById('landingPage');
+  const dash = document.getElementById('dashboardPage');
+  dash.style.transition = 'opacity 0.3s ease';
+  dash.style.opacity = '0';
+  setTimeout(() => {
+    dash.style.display = 'none';
+    dash.style.opacity = '1';
+    dash.style.transition = '';
+    landing.style.display = 'flex';
+    landing.style.opacity = '0';
+    landing.style.transition = 'opacity 0.3s ease';
+    window.location.hash = '';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        landing.style.opacity = '1';
+      });
+    });
+    setTimeout(() => { landing.style.transition = ''; }, 350);
+  }, 300);
 }
 function goTo(id){
   // Make sure landing page is visible first
@@ -3774,6 +3833,21 @@ function renderBestBets(picks) {
 function renderBBError() {
   const el = document.getElementById('bbPicks');
   if(el) el.innerHTML = '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:8px 0">Could not load picks — check credits.</div>';
+}
+
+function showPolicy(type) {
+  const modal = document.getElementById('policyModal');
+  const content = document.getElementById('policyContent');
+  if(!modal || !content) return;
+  content.innerHTML = type === 'privacy' ? `<h1>PRIVACY POLICY</h1><p><em>Last updated May 14, 2026</em></p><p>This Privacy Notice for <strong>Scout</strong> describes how and why we might access, collect, store, use, and/or share your personal information when you use our services.</p><p><strong>Questions or concerns?</strong> Contact us at <a href="mailto:felipestinchi17@gmail.com">felipestinchi17@gmail.com</a></p><h2>WHAT INFORMATION DO WE COLLECT?</h2><p>We collect personal information that you voluntarily provide when you register, including email addresses, names, and passwords. We also collect payment data necessary to process your subscription through our payment processor.</p><h2>HOW DO WE PROCESS YOUR INFORMATION?</h2><p>We process your information to provide and improve our Services, manage your account, fulfill orders, and protect our Services from fraud.</p><h2>DO WE SHARE YOUR INFORMATION?</h2><p>We may share your information in connection with a business transfer. We do not sell your personal information to third parties.</p><h2>DO WE USE COOKIES?</h2><p>We may use cookies and similar tracking technologies to gather information when you interact with our Services.</p><h2>DO WE OFFER AI PRODUCTS?</h2><p>Yes. Scout uses artificial intelligence powered by Anthropic to provide sports analysis and betting intelligence. Your queries may be processed by AI systems to generate responses.</p><h2>HOW LONG DO WE KEEP YOUR INFORMATION?</h2><p>We keep your personal information for as long as you have an account with us, unless a longer period is required by law.</p><h2>DO WE COLLECT INFORMATION FROM MINORS?</h2><p>No. We do not knowingly collect data from children under 18 years of age. By using Scout you represent that you are at least 18 years old.</p><h2>WHAT ARE YOUR PRIVACY RIGHTS?</h2><p>You may review, change, or terminate your account at any time by contacting us at <a href="mailto:felipestinchi17@gmail.com">felipestinchi17@gmail.com</a>.</p><h2>HOW CAN YOU CONTACT US?</h2><p>Scout<br>7261 SW 55th Ave<br>Miami, FL 33143<br>United States<br><a href="mailto:felipestinchi17@gmail.com">felipestinchi17@gmail.com</a></p>` : `<h1>TERMS OF SERVICE</h1><p><em>Last updated May 14, 2026</em></p><p>By accessing or using Scout, you agree to be bound by these Terms of Service.</p><h2>1. ENTERTAINMENT PURPOSES ONLY</h2><p>Scout provides sports analysis and information for entertainment and research purposes only. Nothing on Scout constitutes financial, legal, or betting advice. We do not guarantee the accuracy of any picks, predictions, or analysis. Past performance does not guarantee future results. Always gamble responsibly.</p><h2>2. AGE REQUIREMENT</h2><p>You must be at least 21 years of age (or the legal gambling age in your jurisdiction) to use Scout. By using our Services, you confirm that you meet this requirement.</p><h2>3. SUBSCRIPTIONS AND PAYMENTS</h2><p>Scout offers free and paid subscription tiers. Paid subscriptions are billed monthly. You may cancel at any time. Refunds are issued at our discretion. All payments are processed securely through Stripe.</p><h2>4. PROHIBITED USES</h2><p>You may not use Scout to violate any laws, infringe on intellectual property, transmit harmful content, or attempt to gain unauthorized access to our systems.</p><h2>5. DISCLAIMER OF WARRANTIES</h2><p>Scout is provided "as is" without warranties of any kind. We do not warrant that our Services will be uninterrupted, error-free, or completely accurate. Sports data and AI-generated analysis may contain errors or outdated information.</p><h2>6. LIMITATION OF LIABILITY</h2><p>Scout is not liable for any betting losses, financial losses, or damages arising from your use of our Services. Your use of Scout and any betting decisions you make are entirely at your own risk.</p><h2>7. CHANGES TO TERMS</h2><p>We may update these Terms at any time. Continued use of Scout after changes constitutes acceptance of the new Terms.</p><h2>8. CONTACT US</h2><p>Questions about these Terms? Contact us at <a href="mailto:felipestinchi17@gmail.com">felipestinchi17@gmail.com</a></p>`;
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  modal.onclick = function(e) {
+    if(e.target === modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  };
 }
 
 function initDash(){
