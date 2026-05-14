@@ -55,7 +55,7 @@ body::after {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    LANDING PAGE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-#landingPage { min-height: 100vh; display: var(--landing-display, flex); flex-direction: column; }
+#landingPage { min-height: 100vh; display: flex; flex-direction: column; }
 
 /* NAV */
 .nav {
@@ -1284,108 +1284,33 @@ footer {
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
 
-/* ━━━ MOBILE RESPONSIVE ━━━ */
-@media (max-width: 768px) {
-
-  /* Dashboard body - stack vertically on mobile */
-  .dash-body {
-    flex-direction: column;
-    height: auto;
-    overflow: visible;
-  }
-
-  /* News column full width */
-  .news-col {
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  /* Intel column full width */
-  .intel-col {
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-    min-height: 400px;
-  }
-
-  /* Chat column full width */
-  .chat-col {
-    min-height: 350px;
-  }
-
-  /* Cards grid single column */
-  .cards-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Sport bar scrollable */
-  .sport-bar {
-    padding: 0 4px;
-  }
-  .sport-btn {
-    padding: 0 12px;
-    font-size: 12px;
-  }
-
-  /* Intel tabs scrollable */
-  .intel-bar {
-    padding: 0 4px;
-  }
-  .itab-btn {
-    padding: 0 10px;
-    font-size: 11px;
-  }
-
-  /* Dash nav simplified */
-  .dash-nav {
-    padding: 0 12px;
-  }
-  .dash-clock { display: none; }
-
-  /* Schedule strip smaller */
-  .sched-game {
-    padding: 0 12px;
-    gap: 6px;
-  }
-  .sched-teams { font-size: 12px; }
-
-  /* Intel body padding */
-  .intel-body {
-    padding: 12px;
-  }
-
-  /* Feed items */
-  .feed { max-height: 260px; }
-
-  /* Landing page mobile */
-  .hero {
-    grid-template-columns: 1fr;
-    padding: 40px 20px;
-    gap: 32px;
-  }
-  .hero h1 { font-size: 34px; }
-  .hero-right { display: none; }
-  .features-grid { grid-template-columns: 1fr; }
-  .pricing-grid { grid-template-columns: 1fr; }
-  .explainer-steps { flex-direction: column; }
-  .step-arrow { transform: rotate(90deg); }
-  .nav { padding: 0 16px; }
-  .nav-links .nav-link { display: none; }
-  .sports-section, .features-section, .pricing-section, .explainer-section {
-    padding: 48px 20px;
-  }
-  footer { padding: 24px 20px; flex-direction: column; }
-  .footer-disc { text-align: left; }
-}
-
+/* ━━━ BEST BETS ━━━ */
+.best-bets-bar{border-bottom:1px solid var(--line);background:linear-gradient(135deg,rgba(16,185,129,0.04),rgba(8,9,12,0));padding:5px 14px;flex-shrink:0;}
+.bb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.bb-title{display:flex;align-items:center;gap:8px;font-size:10px;font-family:var(--mono);font-weight:700;letter-spacing:0.1em;color:var(--text3);}
+.bb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite;}
+.bb-badge{background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.2);padding:2px 7px;border-radius:100px;font-size:9px;}
+.bb-refresh{background:transparent;border:1px solid var(--line2);color:var(--text3);width:22px;height:22px;border-radius:5px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.bb-refresh:hover{border-color:var(--green);color:var(--green);}
+.bb-picks{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
+.bb-picks::-webkit-scrollbar{display:none;}
+.bb-loading{display:flex;align-items:center;gap:4px;padding:6px 0;}
+.bb-loading span{width:5px;height:5px;border-radius:50%;background:var(--green);animation:think 1.2s infinite;}
+.bb-loading span:nth-child(2){animation-delay:0.2s;}
+.bb-loading span:nth-child(3){animation-delay:0.4s;}
+.bb-pick{flex-shrink:0;background:var(--card);border:1px solid var(--line);border-radius:7px;padding:7px 10px;min-width:160px;max-width:200px;transition:border-color 0.2s;}
+.bb-pick:hover{border-color:var(--line2);}
+.bb-pick.hot{border-color:rgba(16,185,129,0.3);}
+.bb-pick-sport{font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:0.08em;color:var(--text3);margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+.hot-label{background:var(--green);color:#000;padding:1px 5px;border-radius:3px;font-size:8px;}
+.bb-pick-team{font-size:11px;font-weight:700;color:var(--text);margin-bottom:1px;}
+.bb-pick-bet{font-size:11px;color:var(--green);font-family:var(--mono);font-weight:600;margin-bottom:3px;}
+.bb-pick-reason{font-size:10px;color:var(--text3);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.bb-pick-conf{display:flex;align-items:center;gap:5px;margin-top:5px;padding-top:5px;border-top:1px solid var(--line);}
+.bb-conf-bar{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
+.bb-conf-fill{height:100%;border-radius:2px;background:var(--green);}
+.bb-conf-label{font-size:9px;font-family:var(--mono);color:var(--text3);white-space:nowrap;}
 </style>
-<script>
-// Run immediately before page renders to prevent flash
-if(window.location.hash === '#app') {
-  document.documentElement.style.setProperty('--landing-display', 'none');
-}
-</script>
 </head>
 <body>
 
@@ -1653,6 +1578,16 @@ if(window.location.hash === '#app') {
   <div class="schedule" id="schedule"></div>
   <div class="sport-bar" id="sportBar"></div>
 
+  <!-- BEST BETS BAR -->
+  <div class="best-bets-bar" id="bestBetsBar">
+    <div class="bb-header">
+      <div class="bb-title"><div class="bb-dot"></div>BEST BETS TODAY<span class="bb-badge">AI PICKS</span></div>
+      <button class="bb-refresh" onclick="loadBestBets(true)">↻</button>
+    </div>
+    <div class="bb-picks" id="bbPicks">
+      <div class="bb-loading"><span></span><span></span><span></span><div style="margin-left:8px;font-size:11px;color:var(--text3)">Loading picks...</div></div>
+    </div>
+  </div>
   <div class="dash-body">
     <div class="news-col">
       <div class="col-header"><div class="col-title">Breaking Feed</div></div>
@@ -2635,10 +2570,12 @@ function buildSportBar(){
 
 function setSport(s,el){
   sport=s; itab='injuries'; filter='all'; league='epl';
-  getRenderToken(); // invalidate any pending renders
+  getRenderToken();
   document.querySelectorAll('.sp-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderAll(s);
+  // Load sport-specific best bets
+  showBestBetsButton(s);
 }
 
 // --- SCHEDULE ---
@@ -2804,6 +2741,10 @@ function renderCards(){
 
   // Use AI to generate real intel cards
   renderAICards(sport, itab, league);
+  // Always show Ask Scout panel on injuries tab
+  if(itab === 'injuries') {
+    setTimeout(() => appendInjuryAskScout(sport), 800);
+  }
 }
 
 // --- AI INTEL CARD GENERATOR ---
@@ -3015,7 +2956,7 @@ async function generateAICards(sportName, tabName, leagueName) {
       if(cards && cards.length > 0) {
         setAiCache(cacheKey, cards);
         // Add Ask Scout prompt after returning cards
-        setTimeout(() => appendInjuryAskScout(sportName), 500);
+        setTimeout(() => appendInjuryAskScout(sportName), 800);
         return cards;
       }
     }
@@ -3028,7 +2969,7 @@ async function generateAICards(sportName, tabName, leagueName) {
           const cards = buildInjuryCards(parsed);
           if(cards && cards.length > 0) {
             setAiCache(cacheKey, cards);
-            setTimeout(() => appendInjuryAskScout(sportName), 500);
+            setTimeout(() => appendInjuryAskScout(sportName), 800);
             return cards;
           }
         }
@@ -3206,6 +3147,7 @@ async function startAIAnalysis(sportName, tabName, leagueName) {
   // Render with token check
   if(sport === sportName && itab === tabName) {
     renderAICardList(cards, sportName, tabName, leagueName, myToken);
+    if(tabName === 'injuries') setTimeout(() => appendInjuryAskScout(sportName), 800);
   }
 }
 
@@ -3256,36 +3198,54 @@ function renderAICardList(cards, sportName, tabName, leagueName, token) {
 }
 // Append Ask Scout prompt to injury tab
 function appendInjuryAskScout(sportName) {
+  if(itab !== 'injuries' || sport !== sportName) return;
+  // Remove existing panel first to avoid duplicates
+  const existing = document.getElementById('injuryAskScout');
+  if(existing) existing.remove();
+
   const body = document.getElementById('intelBody');
-  if(!body || itab !== 'injuries') return;
+  if(!body) return;
+
   const sportLabel = sportName === 'soccer'
     ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer')
     : sportName.toUpperCase();
 
-  const prompt = `What are the most important current injuries in ${sportLabel} right now and how do they affect upcoming games?`;
+  const prompt = `What are the most important current injuries in ${sportLabel} right now and how do they affect upcoming games and betting?`;
 
   const el = document.createElement('div');
-  el.style.cssText = 'margin:20px 0 8px;padding:16px;background:var(--card);border:1px solid rgba(16,185,129,0.2);border-radius:12px;display:flex;flex-direction:column;gap:10px;';
+  el.id = 'injuryAskScout';
+  el.style.cssText = 'margin:20px 0 8px;padding:18px;background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.03));border:1px solid rgba(16,185,129,0.25);border-radius:12px;display:flex;flex-direction:column;gap:10px;opacity:0;transition:opacity 0.3s ease;';
+  setTimeout(() => { el.style.opacity = '1'; }, 50);
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;">
-      <div style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0"></div>
-      <span style="font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:0.08em;color:var(--green)">ASK SCOUT FOR MORE</span>
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite;flex-shrink:0"></div>
+      <span style="font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:0.08em;color:var(--green)">SCOUT AI — INJURY INTEL</span>
     </div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.5;">Want specific player injury details, return timelines, or betting impact? Scout AI can answer instantly.</div>
-    <button onclick="prefillChat('${prompt.replace(/'/g, "\\'")}')" style="background:var(--green);color:#000;border:none;padding:10px 20px;border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.06em;align-self:flex-start;">
-      ◆ ASK SCOUT ABOUT ${sportLabel} INJURIES
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;">Want specific player names, return timelines, and betting impact for ${sportLabel}? Scout searches live data and answers instantly.</div>
+    <button onclick="prefillAndSend('${prompt.replace(/'/g, "\\'")}')" style="background:var(--green);color:#000;border:none;padding:11px 22px;border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.06em;align-self:flex-start;display:flex;align-items:center;gap:8px;">
+      ◆ GET ${sportLabel} INJURY REPORT
     </button>`;
   body.appendChild(el);
 }
 
-// Pre-fill chat input with a question
+// Pre-fill chat and auto-send
+function prefillAndSend(question) {
+  const input = document.getElementById('chatField');
+  if(!input) return;
+  input.value = question;
+  // Auto send
+  sendMsg();
+  // Scroll to chat
+  document.querySelector('.chat-col')?.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// Pre-fill chat input only
 function prefillChat(question) {
   const input = document.getElementById('chatField');
-  const chatCol = document.querySelector('.chat-col');
   if(!input) return;
   input.value = question;
   input.focus();
-  if(chatCol) chatCol.scrollIntoView({behavior:'smooth', block:'nearest'});
+  document.querySelector('.chat-col')?.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 const CHAT_SYS=`You are Scout, an elite sports intelligence AI. You know every sport in the world -- American football, basketball, baseball, hockey, soccer, tennis, golf, MMA, boxing, rugby, cricket, Formula 1, NASCAR, cycling, athletics, swimming, esports, volleyball, handball, snooker, darts, and any other sport a user asks about. You have deep knowledge of teams, players, injuries, betting lines, historical trends, cover rates, ATS records, and statistics across all sports globally. Be direct, sharp and concise. Answer in 2-4 sentences max with real data and opinions. Never say you cannot help with a sport -- you cover everything.`;
 
@@ -3602,6 +3562,144 @@ function renderRealInjuryCards(injuries, sport) {
     </div>`;
 }
 
+// --- BEST BETS ---
+const BB_TTL = 12 * 60 * 60 * 1000; // 12 hours - stays until game ends
+
+function getBBKey(s) { return 'scout_bestbets_' + (s || sport); }
+function isBBCacheValid(s) {
+  try { const d = sessionStorage.getItem(getBBKey(s)); if(!d) return false; return (Date.now() - JSON.parse(d).ts) < BB_TTL; } catch(e) { return false; }
+}
+function getBBCache(s) { try { return JSON.parse(sessionStorage.getItem(getBBKey(s))).data; } catch(e) { return null; } }
+function setBBCache(data, s) { try { sessionStorage.setItem(getBBKey(s), JSON.stringify({data, ts:Date.now()})); } catch(e) {} }
+
+// Track which sports are loading in background
+const bbLoadingSet = new Set();
+
+function showBestBetsButton(targetSport) {
+  const s = targetSport || sport;
+  const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer') : s.toUpperCase();
+  const el = document.getElementById('bbPicks');
+  if(!el) return;
+
+  // If cached show instantly
+  if(isBBCacheValid(s)) { renderBestBets(getBBCache(s)); return; }
+
+  // If loading show spinner
+  if(bbLoadingSet.has(s)) {
+    el.innerHTML = '<div class="bb-loading"><span></span><span></span><span></span><div style="margin-left:8px;font-size:11px;color:var(--text3)">Loading ' + sportLabel + ' picks...</div></div>';
+    setTimeout(() => { if(sport === s && bbLoadingSet.has(s)) showBestBetsButton(s); }, 2000);
+    return;
+  }
+
+  // Show button
+  el.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.textContent = '◆ GET ' + sportLabel + ' BEST BETS';
+  btn.style.cssText = 'background:transparent;border:1px solid rgba(16,185,129,0.3);color:var(--green);padding:6px 16px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.08em;white-space:nowrap;';
+  btn.onmouseover = function(){ this.style.background='rgba(16,185,129,0.1)'; };
+  btn.onmouseout = function(){ this.style.background='transparent'; };
+  btn.onclick = function(){ loadBestBets(false, s); };
+  el.appendChild(btn);
+}
+
+
+async function loadBestBets(force, targetSport) {
+  const s = targetSport || sport;
+  const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer') : s.toUpperCase();
+
+  if(!force && isBBCacheValid(s)) { renderBestBets(getBBCache(s)); return; }
+
+  // If already loading this sport, just show spinner
+  if(bbLoadingSet.has(s)) { showBestBetsButton(s); return; }
+
+  const el = document.getElementById('bbPicks');
+  if(el) el.innerHTML = '<div class="bb-loading"><span></span><span></span><span></span><div style="margin-left:8px;font-size:11px;color:var(--text3)">Fetching ' + sportLabel + ' games...</div></div>';
+  bbLoadingSet.add(s);
+
+  // Step 1: Fetch real upcoming games from ESPN
+  let realGames = [];
+  try {
+    const espnMap = ESPN_SPORT_MAP[s];
+    if(espnMap) {
+      const {sport: es, league: el2} = espnMap;
+      const leagueId = s === 'soccer' && league ? ESPN_SOCCER_MAP[league] || el2 : el2;
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${es}/${leagueId}/scoreboard`);
+      if(res.ok) {
+        const data = await res.json();
+        (data.events || []).forEach(ev => {
+          const comp = ev.competitions?.[0];
+          const teams = (comp?.competitors || []).map(c => c.team?.shortDisplayName || '').filter(Boolean);
+          const status = ev.status?.type?.name || '';
+          const gameTime = ev.date ? new Date(ev.date).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) : '';
+          // Only upcoming or live games
+          if(teams.length >= 2 && !status.includes('Final')) {
+            realGames.push({
+              matchup: teams[0] + ' vs ' + teams[1],
+              time: gameTime,
+              live: status.includes('InProgress')
+            });
+          }
+        });
+      }
+    }
+  } catch(e) { console.warn('ESPN fetch for bets failed:', e); }
+
+  // Step 2: Generate AI picks based on real games
+  const today = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  let gamesContext = '';
+  if(realGames.length > 0) {
+    gamesContext = 'Here are the REAL upcoming ' + sportLabel + ' games today:\n' +
+      realGames.map((g, i) => (i+1) + '. ' + g.matchup + (g.live ? ' (LIVE NOW)' : ' at ' + g.time)).join('\n') +
+      '\n\nGenerate betting picks ONLY for these specific real games listed above.';
+  } else {
+    gamesContext = 'No games found via live feed. Generate picks for the most likely upcoming ' + sportLabel + ' games this week based on the current schedule.';
+  }
+
+  const msg = 'Today is ' + today + '.\n\n' + gamesContext + '\n\nFor each game provide: the best bet (spread, moneyline, or total), confidence 1-10, and one sentence reason based on current form, injuries, or matchup edge.\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Exact matchup from the list","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"One sentence reason.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only for conf 8+. type=SPREAD|MONEYLINE|TOTAL. Only pick games from the list above.';
+
+  try {
+    const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages:[{role:'user',content:msg}]})});
+    const data = JSON.parse(await res.text());
+    if(data.error) { renderBBError(); return; }
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const match = text.match(/\{[\s\S]*\}/);
+    if(!match) { renderBBError(); return; }
+    const parsed = JSON.parse(match[0]);
+    bbLoadingSet.delete(s);
+    if(parsed.picks?.length > 0) {
+      setBBCache(parsed.picks, s);
+      // Only render if user is still on this sport
+      if(sport === s) renderBestBets(parsed.picks);
+    } else if(realGames.length === 0) {
+      if(sport === s) {
+        const el2 = document.getElementById('bbPicks');
+        if(el2) el2.innerHTML = '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:8px 0;opacity:0.7">No ' + sportLabel + ' games today. Check back on game day.</div>';
+      }
+    } else { if(sport === s) renderBBError(); }
+  } catch(e) { bbLoadingSet.delete(s); if(sport === s) renderBBError(); }
+}
+
+function renderBestBets(picks) {
+  const el = document.getElementById('bbPicks');
+  if(!el || !picks) return;
+  el.innerHTML = picks.map(p => `
+    <div class="bb-pick ${p.hot?'hot':''}">
+      <div class="bb-pick-sport">${p.sport} ${p.hot?'<span class="hot-label">🔥 HOT</span>':''} <span style="margin-left:auto;font-size:9px;padding:1px 6px;border-radius:3px;background:var(--card2);color:var(--text3)">${p.type}</span></div>
+      <div class="bb-pick-team">${p.team}</div>
+      <div class="bb-pick-bet">${p.bet}</div>
+      <div class="bb-pick-reason">${p.reason}</div>
+      <div class="bb-pick-conf">
+        <div class="bb-conf-bar"><div class="bb-conf-fill" style="width:${p.conf*10}%"></div></div>
+        <div class="bb-conf-label">CONF ${p.conf}/10</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderBBError() {
+  const el = document.getElementById('bbPicks');
+  if(el) el.innerHTML = '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:8px 0">Could not load picks — check credits.</div>';
+}
+
 function initDash(){
   if(inited)return;
   inited=true;
@@ -3609,6 +3707,7 @@ function initDash(){
   buildSportBar();
   renderAll();
   tick();
+  showBestBetsButton(sport); // Show button on startup
   // Auto refresh live data every 10 minutes
   setInterval(() => {
     // Clear only the current sport's cache to get fresh news
