@@ -1403,6 +1403,7 @@ footer {
     <div class="section-title">Every edge, in one <em>place.</em></div>
     <div class="section-sub">Scout pulls from injury reports, line movement, sharp money, weather data, and 3 years of historical trends — then tells you what it means.</div>
     <div class="features-grid">
+      <div class="feature-item" style="border-color:rgba(16,185,129,0.3);background:linear-gradient(135deg,rgba(16,185,129,0.05),transparent);"><span class="fi-icon-badge" style="background:var(--green);color:#000;">🔥</span><div class="fi-title" style="color:var(--green)">Best Bets Today</div><div class="fi-desc">AI-generated picks for today's real games across every sport. Spreads, moneylines, and totals with confidence ratings — updated daily.</div></div>
       <div class="feature-item"><span class="fi-icon-badge">INJ</span><div class="fi-title">Injury Intelligence</div><div class="fi-desc">Not just who's out — but how the team performs without them, backed by historical cover rates.</div></div>
       <div class="feature-item"><span class="fi-icon-badge">TRD</span><div class="fi-title">Historical Trends</div><div class="fi-desc">3 years of cover rates, ATS records, and situational stats on every scenario that matters.</div></div>
       <div class="feature-item"><span class="fi-icon-badge">SHP</span><div class="fi-title">Sharp Money Signals</div><div class="fi-desc">When professional bettors move a line against public sentiment, Scout surfaces it immediately.</div></div>
@@ -1529,6 +1530,7 @@ footer {
           <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Line movement tracker</li>
           <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Weather, fatigue &amp; revenge alerts</li>
           <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Real-time phone &amp; text alerts</li>
+          <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> 🔥 Daily Best Bets picks</li>
           <li><span class="pf-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Ask Scout AI (unlimited)</li>
         </ul>
         <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openDash()">Start free trial</button>
@@ -1578,16 +1580,6 @@ footer {
   <div class="schedule" id="schedule"></div>
   <div class="sport-bar" id="sportBar"></div>
 
-  <!-- BEST BETS BAR -->
-  <div class="best-bets-bar" id="bestBetsBar">
-    <div class="bb-header">
-      <div class="bb-title"><div class="bb-dot"></div>BEST BETS TODAY<span class="bb-badge">AI PICKS</span></div>
-      <button class="bb-refresh" onclick="loadBestBets(true)">↻</button>
-    </div>
-    <div class="bb-picks" id="bbPicks">
-      <div class="bb-loading"><span></span><span></span><span></span><div style="margin-left:8px;font-size:11px;color:var(--text3)">Loading picks...</div></div>
-    </div>
-  </div>
   <div class="dash-body">
     <div class="news-col">
       <div class="col-header"><div class="col-title">Breaking Feed</div></div>
@@ -2183,6 +2175,7 @@ const LEAGUES=[
 ];
 
 const ITABS=[
+  {id:'bestbets',label:'Best Bets',icon:'🔥'},
   {id:'injuries',label:'Injuries',icon:'INJ'},
   {id:'lines',label:'Lines',icon:'LNE'},
   {id:'weather',label:'Weather',icon:'WX'},
@@ -2552,7 +2545,7 @@ const DATA={
 };
 
 // --- STATE ---
-let sport='nfl', itab='injuries', league='epl', filter='all';
+let sport='nfl', itab='bestbets', league='epl', filter='all';
 // Render token - increments every time user switches tab/sport
 // Each async operation captures the token at start and checks at end
 let renderToken = 0;
@@ -2569,13 +2562,11 @@ function buildSportBar(){
 }
 
 function setSport(s,el){
-  sport=s; itab='injuries'; filter='all'; league='epl';
+  sport=s; itab='bestbets'; filter='all'; league='epl';
   getRenderToken();
   document.querySelectorAll('.sp-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderAll(s);
-  // Load sport-specific best bets
-  showBestBetsButton(s);
 }
 
 // --- SCHEDULE ---
@@ -2726,6 +2717,12 @@ const CF={green:'bar-green',red:'bar-red',amber:'bar-amber'};
 function renderCards(){
   const body=document.getElementById('intelBody');
   const ln=sport==='soccer'?` -- ${LEAGUES.find(l=>l.id===league)?.label||''}`:'';
+
+  // Best Bets tab - show picks
+  if(itab === 'bestbets') {
+    renderBestBetsTab();
+    return;
+  }
 
   // Check if we have live data cached for this sport/tab
   const cacheKey = sport + '-' + itab + '-' + league;
@@ -3575,6 +3572,85 @@ function setBBCache(data, s) { try { sessionStorage.setItem(getBBKey(s), JSON.st
 // Track which sports are loading in background
 const bbLoadingSet = new Set();
 
+function renderBestBetsTab() {
+  const body = document.getElementById('intelBody');
+  if(!body) return;
+  const s = sport;
+  const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer') : s.toUpperCase();
+
+  // If cached show instantly
+  if(isBBCacheValid(s)) {
+    renderBestBetsInTab(getBBCache(s), sportLabel);
+    return;
+  }
+
+  // If loading show spinner
+  if(bbLoadingSet.has(s)) {
+    body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;">
+      <div style="display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span></div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--text3)">Analyzing ${sportLabel} games...</div>
+      <div style="font-size:10px;color:var(--text3);opacity:0.6">You can browse other tabs while this loads</div>
+    </div>`;
+    setTimeout(() => { if(sport === s && itab === 'bestbets') renderBestBetsTab(); }, 2000);
+    return;
+  }
+
+  // Show get picks button
+  body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:260px;gap:16px;text-align:center;padding:20px;">
+      <div style="font-size:32px;">🔥</div>
+      <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--text)">Best Bets — ${sportLabel}</div>
+      <div style="font-size:13px;color:var(--text2);max-width:280px;line-height:1.6;">AI-powered picks for today's ${sportLabel} games. Spreads, moneylines, and totals — only for games happening now or soon.</div>
+      <button id="bbGetBtn" onclick="loadBestBetsTab('${s}')" style="background:var(--green);color:#000;border:none;padding:12px 28px;border-radius:8px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.08em;display:flex;align-items:center;gap:8px;">
+        🔥 GET ${sportLabel} BEST BETS
+      </button>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Picks cached 12 hours · Updates daily</div>
+    </div>`;
+}
+
+async function loadBestBetsTab(targetSport) {
+  const s = targetSport || sport;
+  await loadBestBets(false, s);
+  if(sport === s && itab === 'bestbets') renderBestBetsTab();
+}
+
+function renderBestBetsInTab(picks, sportLabel) {
+  const body = document.getElementById('intelBody');
+  if(!body || !picks) return;
+  const ln = sport === 'soccer' ? ` — ${LEAGUES.find(l => l.id === league)?.label || ''}` : '';
+
+  body.innerHTML = `
+    <div style="padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:18px;">🔥</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text)">Best Bets — ${sportLabel}${ln}</div>
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">AI-POWERED · UPDATED TODAY</div>
+          </div>
+        </div>
+        <button onclick="loadBestBets(true,'${sport}').then(()=>{if(itab==='bestbets')renderBestBetsTab()})" style="background:transparent;border:1px solid var(--line2);color:var(--text3);padding:5px 12px;border-radius:6px;font-family:var(--mono);font-size:10px;cursor:pointer;">↻ REFRESH</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
+        ${picks.map(p => `
+          <div style="background:var(--card);border:1px solid ${p.hot ? 'rgba(16,185,129,0.35)' : 'var(--line)'};border-radius:10px;padding:14px;position:relative;${p.hot ? 'box-shadow:0 0 20px rgba(16,185,129,0.06);' : ''}">
+            ${p.hot ? '<div style="position:absolute;top:-1px;right:12px;background:var(--green);color:#000;font-size:8px;font-family:var(--mono);font-weight:700;padding:2px 8px;border-radius:0 0 5px 5px;letter-spacing:0.06em;">🔥 HOT PICK</div>' : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text3);letter-spacing:0.08em;">${p.sport} · ${p.type}</div>
+              <div style="font-size:9px;font-family:var(--mono);color:var(--text3);background:var(--card2);padding:2px 7px;border-radius:3px;">${p.gameday || 'TODAY'}</div>
+            </div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;">${p.team}</div>
+            <div style="font-size:13px;color:var(--green);font-family:var(--mono);font-weight:600;margin-bottom:8px;">${p.bet}</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;">${p.reason}</div>
+            <div style="display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line);">
+              <div style="flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${p.conf*10}%;background:${p.conf>=8?'var(--green)':p.conf>=6?'var(--amber)':'var(--red)'};border-radius:2px;"></div></div>
+              <div style="font-size:9px;font-family:var(--mono);color:var(--text3);white-space:nowrap;">CONF ${p.conf}/10</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
 function showBestBetsButton(targetSport) {
   const s = targetSport || sport;
   const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer') : s.toUpperCase();
@@ -3707,7 +3783,7 @@ function initDash(){
   buildSportBar();
   renderAll();
   tick();
-  showBestBetsButton(sport); // Show button on startup
+  // Best Bets is now first tab - renders via renderCards
   // Auto refresh live data every 10 minutes
   setInterval(() => {
     // Clear only the current sport's cache to get fresh news
