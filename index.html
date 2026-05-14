@@ -3638,22 +3638,24 @@ function renderBestBetsTab() {
   const body = document.getElementById('intelBody');
   if(!body) return;
   const s = sport;
+  const lg = sport === 'soccer' ? league : '';
+  const cacheId = s + (lg ? '-' + lg : '');
   const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer') : s.toUpperCase();
 
   // If cached show instantly
-  if(isBBCacheValid(s)) {
-    renderBestBetsInTab(getBBCache(s), sportLabel);
+  if(isBBCacheValid(cacheId)) {
+    renderBestBetsInTab(getBBCache(cacheId), sportLabel);
     return;
   }
 
   // If loading in background show spinner
-  if(bbLoadingSet.has(s)) {
+  if(bbLoadingSet.has(cacheId)) {
     body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;">
       <div style="display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span></div>
       <div style="font-size:11px;font-family:var(--mono);color:var(--text3)">Analyzing ${sportLabel} games...</div>
       <div style="font-size:10px;color:var(--text3);opacity:0.6">You can browse other tabs while this loads</div>
     </div>`;
-    setTimeout(() => { if(sport === s && itab === 'bestbets') renderBestBetsTab(); }, 2000);
+    setTimeout(() => { if(sport === s && league === lg && itab === 'bestbets') renderBestBetsTab(); }, 2000);
     return;
   }
 
@@ -3663,17 +3665,19 @@ function renderBestBetsTab() {
       <div style="font-size:32px;">🔥</div>
       <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--text)">Best Bets — ${sportLabel}</div>
       <div style="font-size:13px;color:var(--text2);max-width:280px;line-height:1.6;">AI-powered picks for today's ${sportLabel} games. Spreads, moneylines, and totals — only for games happening now or soon.</div>
-      <button id="bbGetBtn" onclick="loadBestBetsTab('${s}')" style="background:var(--green);color:#000;border:none;padding:12px 28px;border-radius:8px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.08em;display:flex;align-items:center;gap:8px;">
+      <button id="bbGetBtn" onclick="loadBestBetsTab('${s}','${lg}')" style="background:var(--green);color:#000;border:none;padding:12px 28px;border-radius:8px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.08em;display:flex;align-items:center;gap:8px;">
         🔥 GET ${sportLabel} BEST BETS
       </button>
       <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Picks cached 12 hours · Updates daily</div>
     </div>`;
 }
 
-async function loadBestBetsTab(targetSport) {
+async function loadBestBetsTab(targetSport, targetLeague) {
   const s = targetSport || sport;
-  await loadBestBets(false, s);
-  if(sport === s && itab === 'bestbets') renderBestBetsTab();
+  const lg = targetLeague !== undefined ? targetLeague : (s === 'soccer' ? league : '');
+  const cacheId = s + (lg ? '-' + lg : '');
+  await loadBestBets(false, s, lg);
+  if(sport === s && league === lg && itab === 'bestbets') renderBestBetsTab();
 }
 
 function renderBestBetsInTab(picks, sportLabel) {
@@ -3741,18 +3745,20 @@ function showBestBetsButton(targetSport) {
 }
 
 
-async function loadBestBets(force, targetSport) {
+async function loadBestBets(force, targetSport, targetLeague) {
   const s = targetSport || sport;
-  const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer') : s.toUpperCase();
+  const lg = targetLeague !== undefined ? targetLeague : (s === 'soccer' ? league : '');
+  const cacheId = s + (lg ? '-' + lg : '');
+  const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === (lg||league))?.label || 'Soccer') : s.toUpperCase();
 
-  if(!force && isBBCacheValid(s)) { renderBestBets(getBBCache(s)); return; }
+  if(!force && isBBCacheValid(cacheId)) { renderBestBets(getBBCache(cacheId)); return; }
 
   // If already loading this sport, just show spinner
-  if(bbLoadingSet.has(s)) { showBestBetsButton(s); return; }
+  if(bbLoadingSet.has(cacheId)) { showBestBetsButton(s); return; }
 
   const el = document.getElementById('bbPicks');
   if(el) el.innerHTML = '<div class="bb-loading"><span></span><span></span><span></span><div style="margin-left:8px;font-size:11px;color:var(--text3)">Fetching ' + sportLabel + ' games...</div></div>';
-  bbLoadingSet.add(s);
+  bbLoadingSet.add(cacheId);
 
   // Step 1: Fetch real upcoming games from ESPN
   let realGames = [];
@@ -3796,7 +3802,7 @@ async function loadBestBets(force, targetSport) {
   const msg = 'Today is ' + today + '.\n\n' + gamesContext + '\n\nFor each game provide: the best bet (spread, moneyline, or total), confidence 1-10, and one sentence reason based on current form, injuries, or matchup edge.\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Exact matchup from the list","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"One sentence reason.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only for conf 8+. type=SPREAD|MONEYLINE|TOTAL. Only pick games from the list above.';
 
   const dateStr = new Date().toISOString().split('T')[0];
-  const serverBBKey = `bestbets-${s}-${league}-${dateStr}`;
+  const serverBBKey = `bestbets-${s}-${lg}-${dateStr}`;
 
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
@@ -3810,18 +3816,17 @@ async function loadBestBets(force, targetSport) {
     const match = text.match(/\{[\s\S]*\}/);
     if(!match) { renderBBError(); return; }
     const parsed = JSON.parse(match[0]);
-    bbLoadingSet.delete(s);
+    bbLoadingSet.delete(cacheId);
     if(parsed.picks?.length > 0) {
-      setBBCache(parsed.picks, s);
-      // Only render if user is still on this sport
-      if(sport === s) renderBestBets(parsed.picks);
+      setBBCache(parsed.picks, cacheId);
+      if(sport === s && league === lg) renderBestBets(parsed.picks);
     } else if(realGames.length === 0) {
-      if(sport === s) {
+      if(sport === s && league === lg) {
         const el2 = document.getElementById('bbPicks');
         if(el2) el2.innerHTML = '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:8px 0;opacity:0.7">No ' + sportLabel + ' games today. Check back on game day.</div>';
       }
-    } else { if(sport === s) renderBBError(); }
-  } catch(e) { bbLoadingSet.delete(s); if(sport === s) renderBBError(); }
+    } else { if(sport === s && league === lg) renderBBError(); }
+  } catch(e) { bbLoadingSet.delete(cacheId); if(sport === s && league === lg) renderBBError(); }
 }
 
 function renderBestBets(picks) {
