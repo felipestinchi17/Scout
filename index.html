@@ -3373,14 +3373,21 @@ async function generateAICards(sportName, tabName, leagueName) {
   // REVENGE/MATCHUPS/SUSPENSION/ROTATION: AI with historical knowledge (cheap)
   // These tabs use pattern-based analysis that AI knows accurately
 
-  const msg = `Today is ${today}. Generate 3 betting intel cards for ${sportLabel.toUpperCase()} ${tabName.toUpperCase()}.
+  const seasonCtx = SPORT_SEASONS[sportName] || (sportName + ' 2025 season');
+  const msg = `Today is ${today}. You are analyzing the ${seasonCtx}.
+
+Generate 3 sharp betting intel cards for ${sportLabel.toUpperCase()} ${tabName.toUpperCase()}.
 
 ${focus}
 
-CRITICAL: Only use data you are highly confident is current and accurate. If unsure about a specific player or situation, use historical trend data instead. Never guess at current rosters or injury status.
+Be specific to the current season. For injuries: use current 2025 rosters. For suspensions: current disciplinary records. For matchups: current form and recent results. For lines: reference realistic current odds ranges for ${sportLabel}.
+
+For individual sports (boxing, MMA, tennis, golf, F1, NASCAR): focus on the specific athletes/drivers competing in current events — matchup edges, form, conditions, styles.
+
+Only include information you are confident is accurate for the current season. If uncertain about a specific current fact, use well-established historical trend data instead.
 
 Return ONLY this JSON (no other text):
-{"cards":[{"team":"TEAM OR SITUATION","sc":"amber","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"specific accurate detail"},{"icon":"TGT","label":"IMPACT","t":"betting impact"},{"icon":"LNE","label":"DATA","t":"relevant stat"}],"trend":{"label":"HISTORICAL TREND","stats":[{"n":"41%","l":"COVER RATE","c":"red"},{"n":"58%","l":"WIN RATE","c":"green"}],"bars":[{"l":"Situation A","p":41,"c":"bar-red"},{"l":"Situation B","p":62,"c":"bar-green"}],"sample":"n=X games"},"verdict":"red","vt":"Actionable verdict."}]}
+{"cards":[{"team":"TEAM, PLAYER, OR MATCHUP","sc":"amber","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"specific accurate detail for current season"},{"icon":"TGT","label":"IMPACT","t":"betting impact with specific numbers"},{"icon":"LNE","label":"EDGE","t":"the actionable betting angle"}],"trend":{"label":"HISTORICAL TREND","stats":[{"n":"41%","l":"COVER RATE","c":"red"},{"n":"58%","l":"WIN RATE","c":"green"}],"bars":[{"l":"Situation A","p":41,"c":"bar-red"},{"l":"Situation B","p":62,"c":"bar-green"}],"sample":"n=X games"},"verdict":"red","vt":"Direct actionable verdict — bet it, fade it, or watch it."}]}
 
 Rules: sc/verdict=green|red|amber. conf=1-10. icon=INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c=bar-green|bar-red|bar-amber.`;
 
@@ -3639,7 +3646,16 @@ function toggleChat() {
   }
 }
 
-const CHAT_SYS=`You are Scout — a sharp sports bettor turned AI. Talk like a pro: direct, specific, no fluff. Example bad: "The signal indicates a possible inefficiency." Example good: "Books adjusted for the injury, but not enough. Market still looks short by ~2 points — I'd be on them." Always explain WHY an edge exists: public overreaction, sharp steam, situational trend, weather mispricing. Know ATS records, CLV, closing line value, reverse line movement, steam moves, and historical trends for every sport. Answer in 2-4 sentences max. Have a real opinion. If something is a bad bet, say so.`;
+const CHAT_SYS=`You are Scout — a sharp sports bettor AI. Rules you ALWAYS follow:
+
+1. NEVER ask clarifying questions. The user is asking about UPCOMING games (today or next 1-3 days). Assume that context always.
+2. Answer DIRECTLY in 2-4 sentences. No preamble, no "great question."
+3. Talk like a pro bettor: "Books are short here by ~2 pts" not "there may be an inefficiency."
+4. Know current 2025-26 seasons for all sports. NFL: 2025 season. NBA: 2025-26. MLB: 2025. Boxing/MMA: current active cards. Tennis: current ATP/WTA tournaments. Golf: current PGA event. F1: 2025 season. Soccer: 2024-25 or 2025-26.
+5. If someone asks about a team or player — give the betting angle immediately. Don't ask what game or what date.
+6. If you don't know the specific current matchup, give the general situational edge and say "confirm the line before betting."
+7. Always end with a clear opinion: bet it, fade it, or pass.
+8. Be conversational — you're a sharp friend, not a corporate AI.`;
 
 function onChatKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } }
 
@@ -3941,14 +3957,76 @@ function renderRealInjuryCards(injuries, sport) {
 }
 
 // --- BEST BETS ---
-const BB_TTL = 12 * 60 * 60 * 1000; // 12 hours - stays until game ends
-
-function getBBKey(s) { return 'scout_bestbets_' + (s || sport); }
-function isBBCacheValid(s) {
-  try { const d = sessionStorage.getItem(getBBKey(s)); if(!d) return false; return (Date.now() - JSON.parse(d).ts) < BB_TTL; } catch(e) { return false; }
+// Best Bets — localStorage with hard midnight reset
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-function getBBCache(s) { try { return JSON.parse(sessionStorage.getItem(getBBKey(s))).data; } catch(e) { return null; } }
-function setBBCache(data, s) { try { sessionStorage.setItem(getBBKey(s), JSON.stringify({data, ts:Date.now()})); } catch(e) {} }
+
+function getBBKey(cacheId) { return 'scout_bb_' + cacheId; }
+
+function isBBCacheValid(cacheId) {
+  try {
+    const raw = localStorage.getItem(getBBKey(cacheId));
+    if(!raw) return false;
+    const parsed = JSON.parse(raw);
+    // HARD check: stored date must match today exactly
+    return parsed.date === todayStr() && Array.isArray(parsed.data) && parsed.data.length > 0;
+  } catch(e) { return false; }
+}
+
+function getBBCache(cacheId) {
+  try {
+    const raw = localStorage.getItem(getBBKey(cacheId));
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(parsed.date !== todayStr()) return null; // expired
+    return parsed.data;
+  } catch(e) { return null; }
+}
+
+function setBBCache(data, cacheId) {
+  try {
+    localStorage.setItem(getBBKey(cacheId), JSON.stringify({
+      data,
+      date: todayStr(), // store date not timestamp
+      ts: Date.now()
+    }));
+  } catch(e) {}
+}
+
+// Clear ALL best bets from previous days on load
+function clearYesterdayBets() {
+  const today = todayStr();
+  Object.keys(localStorage).forEach(k => {
+    if(k.startsWith('scout_bb_')) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(k));
+        if(parsed.date && parsed.date !== today) {
+          localStorage.removeItem(k);
+        }
+      } catch(e) { localStorage.removeItem(k); }
+    }
+  });
+}
+
+
+// Current sport seasons (2025-2026)
+const SPORT_SEASONS = {
+  nfl: 'NFL 2025-26 season (Week 1 starts September 2025)',
+  nba: 'NBA 2025-26 season (started October 2025)',
+  mlb: 'MLB 2025 season (April-October 2025)',
+  nhl: 'NHL 2025-26 season (started October 2025)',
+  ncaa: 'College Football 2025 season',
+  wnba: 'WNBA 2025 season (May-October 2025)',
+  mma: 'UFC 2025 — current active fight cards',
+  boxing: 'Boxing 2025 — current scheduled bouts',
+  tennis: 'ATP/WTA 2025 season — current active tournaments',
+  golf: 'PGA Tour 2025-26 season',
+  nascar: 'NASCAR Cup Series 2025 season',
+  f1: 'Formula 1 2025 season',
+  soccer: 'European football 2024-25 season (final months) and 2025-26 starting August 2025',
+};
 
 // Track which sports are loading in background
 const bbLoadingSet = new Set();
@@ -3958,7 +4036,7 @@ function renderBestBetsTab() {
   if(!body) return;
   const s = sport;
   const lg = sport === 'soccer' ? league : '';
-  const cacheId = s + (lg ? '-' + lg : '');
+  const cacheId = s + (lg ? '-' + lg : '');  // date is in getBBKey itself
   const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === league)?.label || 'Soccer') : s.toUpperCase();
 
   // If cached show instantly
@@ -4071,8 +4149,9 @@ function showBestBetsButton(targetSport) {
   const el = document.getElementById('bbPicks');
   if(!el) return;
 
-  // If cached show instantly
-  if(isBBCacheValid(s)) { renderBestBets(getBBCache(s)); return; }
+  // If cached show instantly (use full cacheId)
+  const _cid = s + (s === 'soccer' ? '-' + league : '');
+  if(isBBCacheValid(_cid)) { renderBestBets(getBBCache(_cid)); return; }
 
   // If loading show spinner
   if(bbLoadingSet.has(s)) {
@@ -4162,10 +4241,11 @@ async function loadBestBets(force, targetSport, targetLeague) {
     gamesContext = 'No games found via live feed for ' + sportLabel + ' today. Generate picks for the most likely upcoming ' + sportLabel + ' games this week based on current standings and schedule.';
   }
 
-  const msg = 'Today is ' + today + '.\n\n' + gamesContext + '\n\nFor each pick provide the best bet with a sharp, direct reason AND a "why" explanation of the market inefficiency behind it. Talk like a sharp bettor, not a chatbot.\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Matchup or player name","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"Sharp one-liner on why this side wins.","why":"The market inefficiency explanation — why books have this wrong.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only for conf 8+. type=SPREAD|MONEYLINE|TOTAL. reason=1 sharp sentence. why=1 sentence on WHY the edge exists (market overreaction, public bias, situational trend etc). Generate 3-5 picks.';
+  const seasonContext = SPORT_SEASONS[s] || (s + ' current season 2025');
+  const msg = 'Today is ' + today + '. You are analyzing the ' + seasonContext + '.\n\n' + gamesContext + '\n\nYour job: find REAL betting edges, not random picks. Only recommend a bet if there is a genuine reason — injury impact, line value, sharp steam, situational trend, or statistical edge. If a game has no clear edge, skip it. Quality over quantity.\n\nFor each pick:\n- Give a specific reason grounded in data or situational context\n- Explain the market inefficiency (why books have this wrong)\n- Only assign conf 8+ if the edge is genuinely strong\n- For individual sports (boxing, MMA, tennis, golf, F1, NASCAR): focus on fighter/player matchup edges, form, and specific conditions\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Exact matchup or player name","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"Specific data-backed reason this bet wins.","why":"The market inefficiency — what the books got wrong.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only for conf 8+. type=SPREAD|MONEYLINE|TOTAL. Generate 2-5 QUALITY picks only — fewer strong picks beats more weak ones.';
 
-  const dateStr = new Date().toISOString().split('T')[0];
-  const serverBBKey = `bestbets-${s}-${lg}-${dateStr}`;
+  const dateStr = todayStr();
+  const serverBBKey = 'bestbets-' + s + '-' + lg + '-' + dateStr;
 
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
@@ -4286,21 +4366,16 @@ function showPolicy(type) {
 // Honest tracker: stores picks with results in localStorage
 // Results must be manually confirmed — no fake stats
 
-const PERF_KEY = 'scout_perf_v1';
-const WORKER = 'https://scout-chat.felipestinchi17.workers.dev';
+const PERF_KEY = 'scout_perf_v2';
 
-// In-memory cache so we don't fetch on every render
+// Track record is per-user in localStorage — each user tracks their own bets only
 let perfCache = null;
 
 async function loadPerf() {
   if(perfCache) return perfCache;
   try {
-    const res = await fetch(WORKER, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'getPerf'})
-    });
-    const data = await res.json();
+    const raw = localStorage.getItem(PERF_KEY);
+    const data = raw ? JSON.parse(raw) : {picks:[]};
     // Auto-remove picks pending > 24 hours
     const now = Date.now();
     data.picks = (data.picks || []).filter(p =>
@@ -4314,11 +4389,7 @@ async function loadPerf() {
 async function savePerf(data) {
   perfCache = data;
   try {
-    await fetch(WORKER, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'setPerf', data})
-    });
+    localStorage.setItem(PERF_KEY, JSON.stringify(data));
   } catch(e) { console.warn('perf save error:', e); }
 }
 
@@ -4496,6 +4567,7 @@ async function trackBestBetsPick(pick) {
 function initDash(){
   if(inited)return;
   inited=true;
+  clearYesterdayBets(); // Clear any picks from previous day
   buildTicker();
   buildSportBar();
   renderAll();
