@@ -3995,18 +3995,28 @@ function setBBCache(data, cacheId) {
   } catch(e) {}
 }
 
-// Clear ALL best bets from previous days on load
+// Clear ALL best bets from previous days on load — aggressive wipe
 function clearYesterdayBets() {
   const today = todayStr();
-  Object.keys(localStorage).forEach(k => {
-    if(k.startsWith('scout_bb_')) {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(k));
-        if(parsed.date && parsed.date !== today) {
-          localStorage.removeItem(k);
+
+  // Nuke EVERYTHING bestbets-related that isn't today
+  // Covers all old key formats from previous code versions
+  const nukePrefixes = ['scout_bb_', 'scout_bestbets_', 'bestbets_'];
+
+  [localStorage, sessionStorage].forEach(store => {
+    try {
+      Object.keys(store).forEach(k => {
+        const isOldFormat = nukePrefixes.some(p => k.startsWith(p));
+        if(!isOldFormat) return;
+        try {
+          const parsed = JSON.parse(store.getItem(k));
+          // Remove if no date field OR date doesn't match today
+          if(!parsed.date || parsed.date !== today) store.removeItem(k);
+        } catch(e) {
+          store.removeItem(k); // Remove unparseable keys too
         }
-      } catch(e) { localStorage.removeItem(k); }
-    }
+      });
+    } catch(e) {}
   });
 }
 
@@ -4112,33 +4122,21 @@ function renderBestBetsInTab(picks, sportLabel) {
         <button onclick="loadBestBets(true,'${sport}').then(()=>{if(itab==='bestbets')renderBestBetsTab()})" style="background:transparent;border:1px solid var(--line2);color:var(--text3);padding:5px 12px;border-radius:6px;font-family:var(--mono);font-size:10px;cursor:pointer;">↻ REFRESH</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
-        ${picks.map(p => {
-          const tier = getEdgeTier(p.conf, p.hot);
-          const score = getEdgeScore(p);
-          return `
-          <div style="background:var(--card);border:1px solid ${tier.border};border-radius:10px;padding:14px;position:relative;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="font-size:9px;font-family:var(--mono);font-weight:700;color:${tier.color};background:${tier.bg};border:1px solid ${tier.border};padding:2px 7px;border-radius:3px;letter-spacing:0.06em;">${tier.label}</span>
-                <span style="font-size:9px;font-family:var(--mono);color:var(--text3);">${p.sport} · ${p.type}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <div style="font-family:var(--mono);font-size:9px;color:var(--text3);">EDGE</div>
-                <div style="font-family:var(--mono);font-size:12px;font-weight:700;color:${score>=80?'var(--green)':score>=60?'var(--amber)':'var(--text3)'};">${score}</div>
-              </div>
+        ${picks.map(p => `
+          <div style="background:var(--card);border:1px solid ${p.hot ? 'rgba(16,185,129,0.35)' : 'var(--line)'};border-radius:10px;padding:14px;position:relative;${p.hot ? 'box-shadow:0 0 20px rgba(16,185,129,0.06);' : ''}">
+            ${p.hot ? '<div style="position:absolute;top:-1px;right:12px;background:var(--green);color:#000;font-size:8px;font-family:var(--mono);font-weight:700;padding:2px 8px;border-radius:0 0 5px 5px;letter-spacing:0.06em;">🔥 HOT PICK</div>' : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text3);letter-spacing:0.08em;">${p.sport} · ${p.type}</div>
+              <div style="font-size:9px;font-family:var(--mono);color:var(--text3);background:var(--card2);padding:2px 7px;border-radius:3px;">${p.gameday || 'TODAY'}</div>
             </div>
             <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;">${p.team}</div>
             <div style="font-size:13px;color:var(--green);font-family:var(--mono);font-weight:600;margin-bottom:8px;">${p.bet}</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;">${p.reason}</div>
-            ${p.why ? `<div style="font-size:11px;color:var(--text3);background:var(--card2);border-left:2px solid ${tier.color};padding:6px 10px;border-radius:0 4px 4px 0;margin-bottom:8px;line-height:1.5;font-style:italic;">${p.why}</div>` : ''}
-            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--line);">
-              <div style="font-size:9px;font-family:var(--mono);color:var(--text3);">${p.gameday || 'TODAY'}</div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <div style="width:48px;height:3px;background:var(--line);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${score}%;background:${tier.color};border-radius:2px;"></div></div>
-                <div style="font-size:9px;font-family:var(--mono);color:var(--text3);">${score}/100</div>
-              </div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;">${p.reason}</div>
+            <div style="display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line);">
+              <div style="flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${p.conf*10}%;background:${p.conf>=8?'var(--green)':p.conf>=6?'var(--amber)':'var(--red)'};border-radius:2px;"></div></div>
+              <div style="font-size:9px;font-family:var(--mono);color:var(--text3);white-space:nowrap;">CONF ${p.conf}/10</div>
             </div>
-          </div>`;}).join('')}
+          </div>`).join('')}
       </div>
     </div>`;
 }
@@ -4244,8 +4242,9 @@ async function loadBestBets(force, targetSport, targetLeague) {
   const seasonContext = SPORT_SEASONS[s] || (s + ' current season 2025');
   const msg = 'Today is ' + today + '. You are analyzing the ' + seasonContext + '.\n\n' + gamesContext + '\n\nYour job: find REAL betting edges, not random picks. Only recommend a bet if there is a genuine reason — injury impact, line value, sharp steam, situational trend, or statistical edge. If a game has no clear edge, skip it. Quality over quantity.\n\nFor each pick:\n- Give a specific reason grounded in data or situational context\n- Explain the market inefficiency (why books have this wrong)\n- Only assign conf 8+ if the edge is genuinely strong\n- For individual sports (boxing, MMA, tennis, golf, F1, NASCAR): focus on fighter/player matchup edges, form, and specific conditions\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Exact matchup or player name","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"Specific data-backed reason this bet wins.","why":"The market inefficiency — what the books got wrong.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only for conf 8+. type=SPREAD|MONEYLINE|TOTAL. Generate 2-5 QUALITY picks only — fewer strong picks beats more weak ones.';
 
+  // Server KV cache keyed by sport+league+DATE — auto-expires when date changes, shared for all users
   const dateStr = todayStr();
-  const serverBBKey = 'bestbets-' + s + '-' + lg + '-' + dateStr;
+  const serverBBKey = 'bb-' + sportAtStart + '-' + leagueAtStart + '-' + dateStr;
 
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
@@ -4567,7 +4566,23 @@ async function trackBestBetsPick(pick) {
 function initDash(){
   if(inited)return;
   inited=true;
-  clearYesterdayBets(); // Clear any picks from previous day
+
+  // One-time hard wipe of ALL bestbets cache (clears stale data from any previous code version)
+  const today = todayStr();
+  [localStorage, sessionStorage].forEach(store => {
+    try {
+      Object.keys(store).forEach(k => {
+        if(k.includes('bestbets') || k.includes('scout_bb')) {
+          try {
+            const v = JSON.parse(store.getItem(k));
+            if(!v.date || v.date !== today) store.removeItem(k);
+          } catch(e) { store.removeItem(k); }
+        }
+      });
+    } catch(e) {}
+  });
+
+  clearYesterdayBets();
   buildTicker();
   buildSportBar();
   renderAll();
