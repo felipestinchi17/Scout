@@ -921,6 +921,9 @@ footer {
 .tag-revenge{background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.2);}
 .tag-fatigue{background:rgba(167,139,250,0.1);color:#a78bfa;border:1px solid rgba(167,139,250,0.2);}
 .tag-susp{background:rgba(251,191,36,0.1);color:#fbbf24;border:1px solid rgba(251,191,36,0.2);}
+.tag-STALE{background:rgba(138,144,158,0.1);color:var(--text3);border:1px solid var(--line2);}
+.tag-MAJOR{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
+.tag-SHARP{background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.2);}
 .tag-rot{background:rgba(34,211,238,0.1);color:#22d3ee;border:1px solid rgba(34,211,238,0.2);}
 .tag-cond{background:rgba(74,222,128,0.08);color:#4ade80;border:1px solid rgba(74,222,128,0.15);}
 
@@ -1665,7 +1668,10 @@ footer {
 
   <div class="dash-body">
     <div class="news-col">
-      <div class="col-header"><div class="col-title">Signal Feed</div></div>
+      <div class="col-header">
+        <div class="col-title">Signal Feed</div>
+        <div id="feedLastChecked" style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.04em;"></div>
+      </div>
       <div class="filters" id="filters"></div>
       <div class="feed" id="feed"></div>
     </div>
@@ -2081,7 +2087,9 @@ function parseESPNNews(data) {
     const headline = article.headline || article.title || article.description || '';
     const desc = article.description || article.summary || '';
     const hl = headline.toLowerCase();
-    // Detect "what changed" type signals
+    const publishedAt = article.published ? new Date(article.published).getTime() :
+                       article.lastModified ? new Date(article.lastModified).getTime() :
+                       article.publishedAt ? new Date(article.publishedAt).getTime() : Date.now();
     const isLineMove = hl.includes('line') || hl.includes('spread') || hl.includes('moved') || hl.includes('odds');
     const isInjury = hl.includes('injur') || hl.includes('out') || hl.includes('doubt') || hl.includes('scratch');
     const isLineup = hl.includes('lineup') || hl.includes('start') || hl.includes('rest');
@@ -2093,7 +2101,8 @@ function parseESPNNews(data) {
       h: headline.substring(0,70) || 'Breaking news',
       b: desc.substring(0,100) || '',
       live: true,
-      fetchedAt: Date.now(),
+      fetchedAt: publishedAt,
+      publishedAt: publishedAt,
     };
   });
 }
@@ -2172,6 +2181,149 @@ function buildWeatherCard(weather, game) {
   };
 }
 
+
+// --- MARKET MOVEMENT SIGNALS ---
+// Detect and surface sharp money / line movement signals
+const marketMoveCache = {}; // previous odds snapshot for comparison
+
+// Movement history for combining repeated alerts
+const moveHistory = {}; // gameId+type -> {count, firstLine, latestLine, firstTs}
+
+function getMoveSeverity(diff) {
+  if(diff >= 3) return {label:'MAJOR STEAM', type:'urgent', color:'var(--red)'};
+  if(diff >= 1.5) return {label:'SHARP MOVE', type:'urgent', color:'var(--amber)'};
+  return {label:'LINE MOVE', type:'warn', color:'var(--text3)'};
+}
+
+function isSignalExpired(firstTs, diff) {
+  // Signal is "stale" if the move happened > 20 minutes ago AND was small
+  const age = Date.now() - firstTs;
+  return age > 20 * 60 * 1000 && diff < 1.5;
+}
+
+async function detectMarketMovement(sportName, leagueName) {
+  const signals = [];
+  try {
+    const oddsData = await fetchLiveOdds(sportName, leagueName);
+    if(!oddsData || !oddsData.length) return signals;
+
+    const cacheKey = sportName + '-' + leagueName;
+    if(!marketMoveCache[cacheKey]) marketMoveCache[cacheKey] = {};
+    const prev = marketMoveCache[cacheKey];
+    const now = Date.now();
+
+    oddsData.slice(0, 8).forEach(game => {
+      const book = game.bookmakers?.[0];
+      if(!book) return;
+      const bookName = book.title || 'DraftKings';
+      const spread = book.markets?.find(m => m.key === 'spreads');
+      const totals = book.markets?.find(m => m.key === 'totals');
+      const home = game.home_team?.split(' ').slice(-1)[0] || '';
+      const away = game.away_team?.split(' ').slice(-1)[0] || '';
+      const matchup = `${away} vs ${home}`;
+      const gameId = game.id;
+      const homeSpread = spread?.outcomes?.find(o => o.name === game.home_team)?.point;
+      const total = totals?.outcomes?.find(o => o.name === 'Over')?.point;
+
+      if(prev[gameId]) {
+        const p = prev[gameId];
+
+        // ── Spread movement ──
+        if(homeSpread !== undefined && p.spread !== undefined) {
+          const rawDiff = homeSpread - p.spread;
+          const diff = Math.abs(rawDiff);
+          if(diff >= 0.5) {
+            const histKey = gameId + '-spread';
+            const hist = moveHistory[histKey];
+            const totalDiff = hist ? Math.abs(homeSpread - hist.firstLine) : diff;
+            const sev = getMoveSeverity(totalDiff);
+            const expired = isSignalExpired(hist ? hist.firstTs : now, totalDiff);
+            const fromLine = hist ? hist.firstLine : p.spread;
+            const dir = rawDiff < 0 ? home + ' getting cheaper' : away + ' getting cheaper';
+
+            let headline, body;
+            if(hist && hist.count > 1) {
+              // Combine: moved X times
+              headline = `${matchup}: Spread moved ${hist.count + 1}× — ${fromLine > 0 ? '+' : ''}${fromLine} → ${homeSpread > 0 ? '+' : ''}${homeSpread} (${bookName})`;
+              body = expired
+                ? `⚠️ Signal may be stale — move detected ${Math.round((now - hist.firstTs)/60000)}m ago. Verify current line before acting.`
+                : `${sev.label} · ${dir} · Total move: ${totalDiff.toFixed(1)} pts`;
+            } else {
+              headline = `${matchup}: ${home} spread ${p.spread > 0 ? '+' : ''}${p.spread} → ${homeSpread > 0 ? '+' : ''}${homeSpread} (${bookName})`;
+              body = expired
+                ? `⚠️ Signal may be stale. Verify current line before acting.`
+                : `${sev.label} · ${dir}`;
+            }
+
+            signals.push({
+              type: expired ? 'warn' : sev.type,
+              tag: 'line',
+              label: expired ? 'STALE' : sev.label.split(' ')[0],
+              h: headline,
+              b: body,
+              publishedAt: hist ? hist.firstTs : now,
+              fetchedAt: now,
+            });
+
+            // Update history
+            moveHistory[histKey] = {
+              count: (hist?.count || 0) + 1,
+              firstLine: hist ? hist.firstLine : p.spread,
+              latestLine: homeSpread,
+              firstTs: hist ? hist.firstTs : now,
+            };
+          }
+        }
+
+        // ── Total movement ──
+        if(total !== undefined && p.total !== undefined) {
+          const rawDiff = total - p.total;
+          const diff = Math.abs(rawDiff);
+          if(diff >= 0.5) {
+            const histKey = gameId + '-total';
+            const hist = moveHistory[histKey];
+            const totalDiff = hist ? Math.abs(total - hist.firstLine) : diff;
+            const sev = getMoveSeverity(totalDiff);
+            const expired = isSignalExpired(hist ? hist.firstTs : now, totalDiff);
+            const fromLine = hist ? hist.firstLine : p.total;
+            const dir = rawDiff < 0 ? 'Under pressure' : 'Over pressure';
+
+            let headline, body;
+            if(hist && hist.count > 1) {
+              headline = `${matchup}: Total moved ${hist.count + 1}× — O/U ${fromLine} → ${total} (${bookName})`;
+              body = expired ? `⚠️ Signal stale — verify current total before betting.` : `${sev.label} · ${dir} · ${totalDiff.toFixed(1)} pt total move`;
+            } else {
+              headline = `${matchup}: Total O/U ${fromLine} → ${total} (${bookName})`;
+              body = expired ? `⚠️ Signal may be stale.` : `${sev.label} · ${dir}`;
+            }
+
+            signals.push({
+              type: expired ? 'warn' : sev.type,
+              tag: 'line',
+              label: expired ? 'STALE' : 'TTL',
+              h: headline,
+              b: body,
+              publishedAt: hist ? hist.firstTs : now,
+              fetchedAt: now,
+            });
+
+            moveHistory[histKey] = {
+              count: (hist?.count || 0) + 1,
+              firstLine: hist ? hist.firstLine : p.total,
+              latestLine: total,
+              firstTs: hist ? hist.firstTs : now,
+            };
+          }
+        }
+      }
+
+      // Save snapshot
+      prev[gameId] = {spread: homeSpread, total, ts: now};
+    });
+  } catch(e) {}
+  return signals;
+}
+
 // Master live data loader - called when switching sports/tabs
 async function loadLiveData(sport, tab, league) {
   const results = { news:[], schedule:[], cards:[] };
@@ -2207,6 +2359,7 @@ async function loadLiveData(sport, tab, league) {
         breakingNews.slice(0,4).forEach(article => {
           const headline = article.title || '';
           const desc = article.description || '';
+          const publishedAt = article.publishedAt ? new Date(article.publishedAt).getTime() : Date.now();
           if(headline && !headline.includes('[Removed]')) {
             results.news.push({
               type: 'warn',
@@ -2216,7 +2369,8 @@ async function loadLiveData(sport, tab, league) {
               h: headline.substring(0, 70),
               b: desc.substring(0, 100),
               live: true,
-              fetchedAt: Date.now(),
+              fetchedAt: publishedAt,
+              publishedAt: publishedAt,
             });
           }
         });
@@ -2231,6 +2385,14 @@ async function loadLiveData(sport, tab, league) {
       if(oddsData && oddsData.length > 0) results.cards = parseOddsToCards(oddsData);
     } catch(e){}
   }
+
+  // Detect market movement signals and add to feed
+  try {
+    const moves = await detectMarketMovement(sport, league);
+    if(moves.length > 0) {
+      moves.forEach(m => results.news.push(m));
+    }
+  } catch(e) {}
 
   return results;
 }
@@ -2742,33 +2904,39 @@ function loadStoredNews(s) {
   } catch(e) { return []; }
 }
 
+function normalizeHeadline(h) {
+  // Normalize to catch near-duplicates
+  return (h || '').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
+}
+
 function saveNewsItems(newItems, s) {
   try {
     const existing = loadStoredNews(s);
     const now = Date.now();
-    // Deduplicate by headline
-    const existingHeadlines = new Set(existing.map(n => n.h));
+    // Deduplicate by normalized headline (catches minor text differences)
+    const existingNorm = new Set(existing.map(n => normalizeHeadline(n.h)));
     const fresh = newItems
-      .filter(n => n.h && !existingHeadlines.has(n.h))
-      .map(n => ({...n, storedAt: now}));
+      .filter(n => n.h && n.h.length > 10 && !existingNorm.has(normalizeHeadline(n.h)))
+      .map(n => ({...n, storedAt: n.fetchedAt || now}));
     if(!fresh.length) return existing;
-    // Prepend new items, cap at 200 total
-    const merged = [...fresh, ...existing].slice(0, 200);
+    const merged = [...fresh, ...existing].slice(0, 150);
     localStorage.setItem(getNewsKey(s), JSON.stringify(merged));
     return merged;
   } catch(e) { return loadStoredNews(s); }
 }
 
 function formatNewsTime(storedAt) {
-  if(!storedAt) return 'Live';
+  if(!storedAt) return '';
   const diff = Date.now() - storedAt;
+  if(diff < 0) return 'just now'; // future dates treated as just now
   const mins = Math.floor(diff / 60000);
   const hrs = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  if(mins < 1) return 'just now';
+  if(mins < 2) return 'just now';
   if(mins < 60) return `${mins}m ago`;
   if(hrs < 24) return `${hrs}h ago`;
-  return `${days}d ago`;
+  if(days < 7) return `${days}d ago`;
+  return new Date(storedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'});
 }
 
 // --- NEWS ---
@@ -2795,7 +2963,7 @@ function renderNews(){
 
   document.getElementById('feed').innerHTML = items.map(n => `
     <div class="feed-item ${n.type||'warn'}">
-      <div class="fi-meta"><span class="fi-tag tag-${n.tag||'line'}">${n.label||'NEWS'}</span><span class="fi-time">${formatNewsTime(n.storedAt||n.fetchedAt)}</span></div>
+      <div class="fi-meta"><span class="fi-tag tag-${n.tag||'line'}">${n.label||'NEWS'}</span><span class="fi-time">${formatNewsTime(n.publishedAt||n.fetchedAt||n.storedAt)}</span></div>
       <div class="fi-headline">${n.h}</div>
       <div class="fi-body">${n.b||''}</div>
     </div>`).join('') || (items.length === 0 && combined.length === 0 ? skeletonRow+skeletonRow+skeletonRow : '<div style="padding:20px 14px;font-size:11px;color:var(--text3);font-family:var(--mono)">No signals this week yet.</div>');
@@ -3584,6 +3752,12 @@ function applyLiveData(live) {
   if(live.schedule && live.schedule.length > 0) renderScheduleFromLive(live.schedule);
   if(live.news && live.news.length > 0) prependLiveNews(live.news);
   if(live.cards && live.cards.length > 0 && itab === 'lines') renderLiveCards(live.cards);
+  // Update last checked
+  const el = document.getElementById('feedLastChecked');
+  if(el) {
+    const t = new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+    el.textContent = `checked ${t}`;
+  }
 }
 
 function renderLiveInjuryCards(injuryNews){
@@ -4080,7 +4254,10 @@ function showTransparency() {
     <h2 style="font-family:Georgia,serif;font-size:18px;margin:20px 0 8px;">What Scout Is Not</h2>
     <p>Scout is not a guaranteed picks service. We do not claim 100% accuracy, and no betting tool can. Scout is a research and intelligence platform — it surfaces edges and signals to inform your decisions. You are responsible for your own betting choices.</p>
 
-    <p style="margin-top:24px;padding:14px;background:#f9f9f9;border-radius:8px;font-size:12px;color:#666;">Questions about our methodology? Email us at <a href="mailto:felipestinchi17@gmail.com">felipestinchi17@gmail.com</a></p>
+    <div style="margin-top:24px;padding:14px;background:#fff3cd;border-radius:8px;font-size:12px;color:#856404;border:1px solid #ffc107;">
+      <strong>⚠️ Important disclaimer:</strong> Scout does not guarantee profit. All signals are decision-support tools, not financial advice. Betting involves risk — only bet what you can afford to lose. Past signal performance does not guarantee future results. Scout is for research and entertainment purposes only.
+    </div>
+    <p style="margin-top:12px;padding:14px;background:#f9f9f9;border-radius:8px;font-size:12px;color:#666;">Questions about our methodology? Email us at <a href="mailto:felipestinchi17@gmail.com">felipestinchi17@gmail.com</a></p>
   `;
   modal.style.display = 'block';
   document.body.style.overflow = 'hidden';
@@ -4110,17 +4287,43 @@ function showPolicy(type) {
 // Results must be manually confirmed — no fake stats
 
 const PERF_KEY = 'scout_perf_v1';
+const WORKER = 'https://scout-chat.felipestinchi17.workers.dev';
 
-function loadPerf() {
-  try { return JSON.parse(localStorage.getItem(PERF_KEY)) || {picks:[]}; } catch(e) { return {picks:[]}; }
+// In-memory cache so we don't fetch on every render
+let perfCache = null;
+
+async function loadPerf() {
+  if(perfCache) return perfCache;
+  try {
+    const res = await fetch(WORKER, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'getPerf'})
+    });
+    const data = await res.json();
+    // Auto-remove picks pending > 24 hours
+    const now = Date.now();
+    data.picks = (data.picks || []).filter(p =>
+      p.result !== 'pending' || (now - (p.addedAt || 0)) < 24 * 60 * 60 * 1000
+    );
+    perfCache = data;
+    return data;
+  } catch(e) { return perfCache || {picks:[]}; }
 }
 
-function savePerf(data) {
-  try { localStorage.setItem(PERF_KEY, JSON.stringify(data)); } catch(e) {}
+async function savePerf(data) {
+  perfCache = data;
+  try {
+    await fetch(WORKER, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'setPerf', data})
+    });
+  } catch(e) { console.warn('perf save error:', e); }
 }
 
-function calcPerfStats() {
-  const data = loadPerf();
+async function calcPerfStats() {
+  const data = await loadPerf();
   const picks = data.picks || [];
   const settled = picks.filter(p => p.result !== 'pending');
   const wins = settled.filter(p => p.result === 'win');
@@ -4145,8 +4348,8 @@ function calcPerfStats() {
   };
 }
 
-function renderPerfSummary() {
-  const s = calcPerfStats();
+async function renderPerfSummary() {
+  const s = await calcPerfStats();
   const el = document.getElementById('perfSummary');
   if(!el) return;
   if(s.total === 0) {
@@ -4166,8 +4369,8 @@ function togglePerfModal() {
   if(!isOpen) renderPerfModal();
 }
 
-function renderPerfModal() {
-  const s = calcPerfStats();
+async function renderPerfModal() {
+  const s = await calcPerfStats();
 
   // Stats grid
   const statsEl = document.getElementById('perfStats');
@@ -4244,33 +4447,33 @@ function getEdgeScore(pick) {
   return score;
 }
 
-function settlePick(id, result) {
-  const data = loadPerf();
+async function settlePick(id, result) {
+  const data = await loadPerf();
   const pick = data.picks.find(p => String(p.id) === String(id));
   if(!pick) return;
   pick.result = result;
   pick.settledAt = Date.now();
-  savePerf(data);
+  await savePerf(data);
   renderPerfSummary();
   renderPerfModal();
 }
 
-function unsettlePick(id) {
-  const data = loadPerf();
+async function unsettlePick(id) {
+  const data = await loadPerf();
   const pick = data.picks.find(p => String(p.id) === String(id));
   if(!pick) return;
   pick.result = 'pending';
   pick.settledAt = null;
-  savePerf(data);
+  await savePerf(data);
   renderPerfSummary();
   renderPerfModal();
 }
 
 // Auto-save a pick when Best Bets generates — starts as pending
-function trackBestBetsPick(pick) {
-  const data = loadPerf();
+async function trackBestBetsPick(pick) {
+  const data = await loadPerf();
   const existing = data.picks.find(p => p.team === pick.team && p.bet === pick.bet);
-  if(existing) return; // already tracked
+  if(existing) return;
   data.picks.push({
     id: Date.now() + Math.random(),
     sport: pick.sport,
@@ -4281,9 +4484,12 @@ function trackBestBetsPick(pick) {
     result: 'pending',
     units: 1,
     addedAt: Date.now(),
-    settledAt: null
+    settledAt: null,
+    openingLine: pick.bet,   // Store for CLV tracking
+    closingLine: null,        // Set manually after game closes
+    clv: null                 // Calculated when closing line is set
   });
-  savePerf(data);
+  await savePerf(data);
   renderPerfSummary();
 }
 
@@ -4298,11 +4504,15 @@ function initDash(){
   // Best Bets is now first tab - renders via renderCards
   // Auto refresh live data every 10 minutes
   setInterval(() => {
-    // Clear only the current sport's cache to get fresh news
     const keysToDelete = Object.keys(liveCache).filter(k => k.startsWith(sport + '-'));
     keysToDelete.forEach(k => { delete liveCache[k]; delete liveCacheTimestamps[k]; });
     fetchAndMerge();
   }, 10 * 60 * 1000);
+
+  // Refresh news feed every 3 minutes while on dashboard
+  setInterval(() => {
+    fetchAndMerge();
+  }, 3 * 60 * 1000);
 }
 
 // Hash-based routing — if URL ends with #app show dashboard automatically
