@@ -900,9 +900,7 @@ footer {
   position: relative;
 }
 .feed-item:hover { background: var(--card); }
-.feed-item.urgent::before { content:''; position:absolute; left:0;top:0;bottom:0;width:2px;background:var(--red); }
-.feed-item.warn::before { content:''; position:absolute; left:0;top:0;bottom:0;width:2px;background:var(--amber); }
-.feed-item.ok::before { content:''; position:absolute; left:0;top:0;bottom:0;width:2px;background:var(--green); }
+.feed-item.urgent::before,.feed-item.warn::before,.feed-item.ok::before { content:''; position:absolute; left:0;top:0;bottom:0;width:2px;background:var(--amber); }
 
 .fi-meta { display:flex;align-items:center;gap:6px;margin-bottom:4px; }
 .fi-tag {
@@ -2939,14 +2937,15 @@ async function fetchRealGames(sportName, leagueName) {
       const isLive = statusName.includes('IN_PROGRESS') || statusName.includes('HALFTIME');
       const gameTime = ev.date ? new Date(ev.date).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
       if(away || home) {
-        // For team sports: only include games within 24h from now or currently live
         const evTime = ev.date ? new Date(ev.date).getTime() : null;
         const now = Date.now();
         const within24h = evTime && evTime <= (now + 24 * 60 * 60 * 1000);
         if(isLive || within24h) {
+          const awayName = away || awayAbb;
+          const homeName = home || homeAbb;
           games.push({
-            full: `${away || awayAbb} vs ${home || homeAbb}`,
-            abbr: `${awayAbb} vs ${homeAbb}`,
+            full: awayName + ' @ ' + homeName + ' (' + awayName + ' is visiting, ' + homeName + ' is HOME)',
+            abbr: awayAbb + ' @ ' + homeAbb,
             time: isLive ? 'LIVE' : gameTime,
             live: isLive,
             a: comp?.injuries?.length > 0
@@ -3085,7 +3084,7 @@ function renderNews(){
 
   document.getElementById('feed').innerHTML = items.map(n => `
     <div class="feed-item ${n.type||'warn'}">
-      <div class="fi-meta"><span class="fi-tag tag-${n.tag||'line'}">${n.label||'NEWS'}</span><span class="fi-time">${formatNewsTime(n.publishedAt||n.fetchedAt||n.storedAt)}</span></div>
+      <div class="fi-meta"><span class="fi-tag tag-lineup">NEWS</span><span class="fi-time">${formatNewsTime(n.publishedAt||n.fetchedAt||n.storedAt)}</span></div>
       <div class="fi-headline">${n.h}</div>
       <div class="fi-body">${n.b||''}</div>
     </div>`).join('') || (items.length === 0 && combined.length === 0 ? skeletonRow+skeletonRow+skeletonRow : '<div style="padding:20px 14px;font-size:11px;color:var(--text3);font-family:var(--mono)">No signals this week yet.</div>');
@@ -4340,122 +4339,144 @@ async function loadBestBets(force, targetSport, targetLeague) {
   const s = targetSport || sport;
   const lg = targetLeague !== undefined ? targetLeague : (s === 'soccer' ? league : '');
   const cacheId = s + (lg ? '-' + lg : '');
-  // Snapshot current sport/league so async code uses correct values
   const sportAtStart = s;
   const leagueAtStart = lg;
   const sportLabel = s === 'soccer' ? (LEAGUES.find(l => l.id === (lg||league))?.label || 'Soccer') : s.toUpperCase();
-
-  if(!force && isBBCacheValid(cacheId)) { renderBestBets(getBBCache(cacheId)); return; }
-
-  // If already loading this sport, just show spinner
-  if(bbLoadingSet.has(cacheId)) { showBestBetsButton(s); return; }
-
-  const el = document.getElementById('bbPicks');
-  if(el) el.innerHTML = '<div class="bb-loading"><span></span><span></span><span></span><div style="margin-left:8px;font-size:11px;color:var(--text3)">Fetching ' + sportLabel + ' games...</div></div>';
-  bbLoadingSet.add(cacheId);
-
-  // Sports where ESPN scoreboard doesn't work well - skip to AI directly
   const noScoreboardSports = ['tennis', 'golf', 'boxing', 'nascar', 'f1', 'mma'];
 
-  // Step 1: Fetch real upcoming games from ESPN (only for team sports)
-  const realGamesList = noScoreboardSports.includes(s) ? [] : await fetchRealGames(s, leagueAtStart);
-  let realGames = realGamesList.map(g => ({matchup: g.full, time: g.time, live: g.live}));
+  // Already loading
+  if(bbLoadingSet.has(cacheId)) return;
 
-  // If team sport has NO games in next 24h — stop here, show no-games message
-  if(!noScoreboardSports.includes(s) && realGames.length === 0) {
-    bbLoadingSet.delete(cacheId);
-    const leagueMatchNG = s === 'soccer' ? league === leagueAtStart : true;
-    if(sport === s && leagueMatchNG && itab === 'bestbets') {
-      const bodyNG = document.getElementById('intelBody');
-      if(bodyNG) bodyNG.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;padding:20px;">
-        <div style="font-size:28px;opacity:0.2">—</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text2)">No ${sportLabel} games today</div>
-        <div style="font-size:11px;color:var(--text3);max-width:240px;line-height:1.7;">No games in the next 24 hours. Scout generates picks when games are upcoming.</div>
-      </div>`;
+  // Check memory cache
+  if(!force && isBBCacheValid(cacheId)) {
+    const cached = getBBCache(cacheId);
+    if(cached) {
+      const lm = sportAtStart === 'soccer' ? league === leagueAtStart : true;
+      if(sport === sportAtStart && lm && itab === 'bestbets') renderBestBetsInTab(cached, sportLabel);
+      return;
     }
-    return;
   }
 
-  // Step 2: Generate AI picks
-  const today = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
-  let gamesContext = '';
-  // Only include games in next 24 hours
-  const next24Games = realGames.filter(g => g.live || g.time);
-  const isTeamSport = !noScoreboardSports.includes(s);
+  bbLoadingSet.add(cacheId);
 
-  if(next24Games.length > 0) {
-    gamesContext = 'ONLY generate picks for these real games happening TODAY:\n' +
-      next24Games.map((g, i) => (i+1) + '. ' + g.matchup + (g.live ? ' (LIVE NOW)' : ' at ' + g.time)).join('\n') +
-      '\n\nThese are the ONLY valid matchups. Do not invent any other games.';
-    realGames = next24Games;
-  } else if(noScoreboardSports.includes(s)) {
-    // Individual sports: 72h window — AI uses own knowledge for upcoming events
-    gamesContext = 'Generate picks for ' + sportLabel + ' events happening in the next 72 hours. ' +
-      (s === 'tennis' ? 'Focus on current ATP/WTA tournament matches this week.' :
-       s === 'golf' ? 'Focus on current PGA Tour event rounds and player matchups.' :
-       s === 'boxing' ? 'Focus on fight cards scheduled in the next 3 days.' :
-       s === 'nascar' ? 'Focus on this weekend\'s NASCAR race at the current track.' :
-       s === 'f1' ? 'Focus on the upcoming Formula 1 Grand Prix this weekend.' :
-       s === 'mma' ? 'Focus on the UFC/MMA fight card in the next 3 days.' : '') +
-      ' Only include events you are highly confident are real and scheduled.';
-  } else {
-    // Team sport with no ESPN games found — show no games rather than fake picks
-    const leagueMatch5 = sportAtStart === 'soccer' ? league === leagueAtStart : true;
-    if(sport === sportAtStart && leagueMatch5 && itab === 'bestbets') {
-      const body5 = document.getElementById('intelBody');
-      if(body5) body5.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;padding:20px;">
-        <div style="font-size:28px;opacity:0.2">—</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text2)">No ${sportLabel} games today</div>
-        <div style="font-size:11px;color:var(--text3);max-width:240px;line-height:1.7;">Scout generates picks within 24 hours of tipoff. No games in the next 24 hours for this league.</div>
-      </div>`;
-    }
-    bbLoadingSet.delete(cacheId);
-    return;
-  }
+  // Show loading in the tab body
+  const showLoading = () => {
+    const lm = sportAtStart === 'soccer' ? league === leagueAtStart : true;
+    if(sport !== sportAtStart || !lm || itab !== 'bestbets') return;
+    const body = document.getElementById('intelBody');
+    if(body) body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;">
+      <div style="display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--green);animation:think 1.2s 0.4s infinite"></span></div>
+      <div style="font-size:11px;font-family:var(--mono);color:var(--text3)">Fetching ${sportLabel} games...</div>
+    </div>`;
+  };
+  showLoading();
 
-  const seasonContext = SPORT_SEASONS[s] || (s + ' current season 2025');
-  const msg = 'Today is ' + today + '. You are analyzing the ' + seasonContext + '.\n\n' + gamesContext + '\n\nGenerate 3-5 sharp betting picks. Keep descriptions SHORT — one punchy sentence each, max 12 words.\n\nExamples of the length I want:\nreason: "Bournemouth conceded 12 in last 4 — City needs goals for GD."\nwhy: "Market not pricing City\'s title desperation."\n\nreason: "Celtics 0-4 ATS on back-to-backs this season."\nwhy: "Line set before injury report dropped."\n\nreason: "Tank KOs 71% of opponents — this guy\'s been stopped twice."\nwhy: "Public on the name, sharps on the finish."\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Matchup","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"Max 12 word punchy reason.","why":"Max 10 word market inefficiency.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only conf 8+. type=SPREAD|MONEYLINE|TOTAL. SHORT text only.';
+  const showNoGames = () => {
+    const lm = sportAtStart === 'soccer' ? league === leagueAtStart : true;
+    if(sport !== sportAtStart || !lm || itab !== 'bestbets') return;
+    const body = document.getElementById('intelBody');
+    if(body) body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;padding:20px;">
+      <div style="font-size:28px;opacity:0.2">—</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text2)">No ${sportLabel} games today</div>
+      <div style="font-size:11px;color:var(--text3);max-width:240px;line-height:1.7;">No games in the next 24 hours. Scout generates picks when games are upcoming.</div>
+    </div>`;
+  };
 
-  // Server KV cache keyed by sport+league+DATE — auto-expires when date changes, shared for all users
-  const dateStr = todayStr();
-  const serverBBKey = 'bb6-' + sportAtStart + '-' + leagueAtStart + '-' + dateStr;
+  const showError = () => {
+    const lm = sportAtStart === 'soccer' ? league === leagueAtStart : true;
+    if(sport !== sportAtStart || !lm || itab !== 'bestbets') return;
+    const body = document.getElementById('intelBody');
+    if(body) body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;">
+      <div style="font-size:24px;opacity:0.2">—</div>
+      <div style="font-size:12px;color:var(--text2)">Could not load picks right now.</div>
+      <button onclick="loadBestBetsTab('${sportAtStart}','${leagueAtStart}')" style="background:var(--green);color:#000;border:none;padding:8px 18px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em;">↻ RETRY</button>
+    </div>`;
+  };
 
   try {
-    const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:msg}], cacheKey: serverBBKey})
+    // Fetch real games
+    const realGamesList = noScoreboardSports.includes(s) ? [] : await fetchRealGames(s, leagueAtStart);
+    const realGames = realGamesList.map(g => ({matchup: g.full, time: g.time, live: g.live}));
+
+    // No games for team sport → stop
+    if(!noScoreboardSports.includes(s) && realGames.length === 0) {
+      bbLoadingSet.delete(cacheId);
+      showNoGames();
+      return;
+    }
+
+    // Fetch real odds (non-blocking — if fails just skip)
+    let oddsContext = '';
+    if(!noScoreboardSports.includes(s) && USE.ODDS && CFG.ODDS_API_KEY) {
+      try {
+        const oddsData = await fetchLiveOdds(s, leagueAtStart);
+        if(oddsData?.length > 0) {
+          const lines = oddsData.slice(0,8).map(g => {
+            const bk = g.bookmakers?.[0];
+            const h2h = bk?.markets?.find(m=>m.key==='h2h');
+            const sp = bk?.markets?.find(m=>m.key==='spreads');
+            const tot = bk?.markets?.find(m=>m.key==='totals');
+            const fmt = p => p>0?'+'+Math.round(p):String(Math.round(p));
+            const hML = h2h?.outcomes?.find(o=>o.name===g.home_team)?.price;
+            const aML = h2h?.outcomes?.find(o=>o.name===g.away_team)?.price;
+            const hSp = sp?.outcomes?.find(o=>o.name===g.home_team);
+            const total = tot?.outcomes?.find(o=>o.name==='Over')?.point;
+            const parts = [g.away_team+' vs '+g.home_team];
+            if(aML&&hML) parts.push('ML: '+g.away_team+' '+fmt(aML)+' / '+g.home_team+' '+fmt(hML));
+            if(hSp) parts.push('Spread: '+g.home_team+' '+(hSp.point>0?'+':'')+hSp.point+' ('+fmt(hSp.price)+')');
+            if(total) parts.push('O/U '+total);
+            return parts.join(' | ');
+          }).join('\n');
+          oddsContext = '\n\nReal odds from sportsbooks:\n'+lines+'\nUse these exact numbers.';
+        }
+      } catch(e) {}
+    }
+
+    // Build prompt
+    const today = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const seasonCtx = SPORT_SEASONS[s] || (s+' 2025');
+    let gamesContext = '';
+    if(realGames.length > 0) {
+      gamesContext = 'Games TODAY (format: AWAY @ HOME — the second team is always the home team):\n'+realGames.map((g,i)=>(i+1)+'. '+g.matchup+(g.live?' (LIVE)':' at '+g.time)).join('\n')+oddsContext+'\nOnly pick from these games. Do not change which team is home or away.';
+    } else {
+      gamesContext = 'Upcoming '+sportLabel+' events this week. Only real events you are certain about.';
+    }
+
+    const msg = 'Today is '+today+'. '+seasonCtx+'.\n\n'+gamesContext+
+      '\n\nIMPORTANT: Use your web search tool to find the current real odds (moneylines, spreads, totals) for each game listed above before generating picks. Search for "[sport] odds today [date]" or the specific matchup. Use ONLY the real odds you find — never guess or invent lines.'+
+      '\n\nGenerate 3-5 sharp betting picks using the real odds you searched for.'+
+      '\n\nReturn ONLY this JSON (no other text):\n'+
+      '{"picks":[{"sport":"'+sportLabel+'","team":"Away @ Home","bet":"Real bet e.g. Pacers +3.5 (-110)","type":"SPREAD","conf":8,"hot":false,"reason":"Specific stat-backed reason max 12 words.","why":"Market inefficiency max 10 words.","gameday":"Today"}]}\n\n'+
+      'Rules: conf=1-10. hot=true only conf 8+. type=SPREAD|MONEYLINE|TOTAL. Use real odds from your search.';
+
+    const dateStr = todayStr();
+    const serverBBKey = 'bb11-'+sportAtStart+'-'+leagueAtStart+'-'+dateStr;
+
+    const res = await fetch('https://scout-chat.felipestinchi17.workers.dev',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'user',content:msg}], cacheKey:serverBBKey, useWebSearch:true, system:'You are Scout, a sharp sports betting AI. Search for current odds, injury reports, and game info before generating picks. Always use real current data.'})
     });
-    const data = JSON.parse(await res.text());
-    if(data.error) { renderBBError(); return; }
-    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-    const match = text.match(/\{[\s\S]*\}/);
-    if(!match) { renderBBError(); return; }
-    const parsed = JSON.parse(match[0]);
+    const raw = await res.text();
+    let data; try{data=JSON.parse(raw);}catch(e){data={};}
+    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const match=text.match(/\{[\s\S]*\}/);
+    let parsed=null; if(match){try{parsed=JSON.parse(match[0]);}catch(e){}}
+
     bbLoadingSet.delete(cacheId);
-    if(parsed.picks?.length > 0) {
+
+    if(parsed?.picks?.length>0) {
       setBBCache(parsed.picks, cacheId);
-      const leagueMatch = sportAtStart === 'soccer' ? league === leagueAtStart : true;
-      if(sport === sportAtStart && leagueMatch && itab === 'bestbets') {
-        const sportLabel2 = sportAtStart === 'soccer' ? (LEAGUES.find(l => l.id === leagueAtStart)?.label || 'Soccer') : sportAtStart.toUpperCase();
-        renderBestBetsInTab(parsed.picks, sportLabel2);
-        // Auto-track picks as pending
-        parsed.picks.forEach(p => trackBestBetsPick(p));
-      }
-    } else if(realGames.length === 0) {
-      const leagueMatch2 = sportAtStart === 'soccer' ? league === leagueAtStart : true;
-      if(sport === sportAtStart && leagueMatch2 && itab === 'bestbets') {
-        const body2 = document.getElementById('intelBody');
-        if(body2) body2.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;font-size:12px;color:var(--text3);font-family:var(--mono)">No ' + sportLabel + ' games scheduled today.</div>';
+      const lm = sportAtStart==='soccer'?league===leagueAtStart:true;
+      if(sport===sportAtStart&&lm&&itab==='bestbets') {
+        renderBestBetsInTab(parsed.picks, sportLabel);
+        parsed.picks.forEach(p=>trackBestBetsPick(p));
       }
     } else {
-      const leagueMatch3 = sportAtStart === 'soccer' ? league === leagueAtStart : true;
-      if(sport === sportAtStart && leagueMatch3 && itab === 'bestbets') renderBBError();
+      showError();
     }
   } catch(e) {
     bbLoadingSet.delete(cacheId);
-    const leagueMatch4 = sportAtStart === 'soccer' ? league === leagueAtStart : true;
-    if(sport === sportAtStart && leagueMatch4 && itab === 'bestbets') renderBBError();
+    showError();
   }
 }
 
@@ -4476,8 +4497,13 @@ function renderBestBets(picks) {
 }
 
 function renderBBError() {
-  const el = document.getElementById('bbPicks');
-  if(el) el.innerHTML = '<div style="font-size:11px;color:var(--text3);font-family:var(--mono);padding:8px 0">Could not load picks — check credits.</div>';
+  const body = document.getElementById('intelBody');
+  if(!body) return;
+  body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;padding:20px;">
+    <div style="font-size:24px;opacity:0.2">—</div>
+    <div style="font-size:12px;color:var(--text2)">Could not load picks right now.</div>
+    <button onclick="loadBestBetsTab('${sport}','${sport==='soccer'?league:''}')" style="background:var(--green);color:#000;border:none;padding:8px 18px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em;">↻ RETRY</button>
+  </div>`;
 }
 
 
