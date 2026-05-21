@@ -1536,6 +1536,45 @@ footer {
     <div style="text-align:center;margin-top:20px;font-size:12px;color:var(--text3);">Scout surfaces the signal — you place the bet at your book of choice.</div>
   </div>
 
+  <!-- WHY TRUST SCOUT -->
+  <div style="padding:80px 48px;border-top:1px solid var(--line);" id="trust">
+    <div class="section-eyebrow">Why bettors trust Scout</div>
+    <div class="section-title">Built different from the <em>rest.</em></div>
+    <div class="section-sub">No guaranteed locks. No fake records. Just transparent, data-backed market intelligence.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:48px;">
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px;">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--green);margin-bottom:12px;">01</div>
+        <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:8px;">Transparent Track Record</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.65;font-weight:300;">Every pick is logged the moment it's generated. W/L results are manually verified — no cherry-picking, no retroactive changes.</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px;">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--green);margin-bottom:12px;">02</div>
+        <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:8px;">Real-Time Market Movement</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.65;font-weight:300;">Scout detects line movement, sharp steam, and public vs sharp disagreements as they happen — not hours later.</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px;">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--green);margin-bottom:12px;">03</div>
+        <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:8px;">No Fake Guarantees</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.65;font-weight:300;">We never call anything a "lock." Every signal comes with a confidence rating and the reasoning behind it. You decide.</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px;">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--green);margin-bottom:12px;">04</div>
+        <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:8px;">CLV-Focused Philosophy</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.65;font-weight:300;">Scout tracks closing line value — the real measure of a sharp bettor. Beating the closing line means you found real value, win or lose.</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px;">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--green);margin-bottom:12px;">05</div>
+        <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:8px;">Data-Driven Signals</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.65;font-weight:300;">Every signal is backed by historical cover rates, situational trends, and real line data — not gut feelings or social media noise.</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--green);border-radius:10px;padding:24px;background:linear-gradient(135deg,rgba(16,185,129,0.06),var(--card));">
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:0.1em;color:var(--green);margin-bottom:12px;">06</div>
+        <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:8px;color:var(--green)">Market Intelligence</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.65;font-weight:300;">Scout isn't an AI picks generator — it's a market intelligence engine. The difference is everything.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- PRICING -->
   <div class="pricing-section" id="pricing">
     <div class="section-eyebrow">Pricing</div>
@@ -1672,7 +1711,6 @@ footer {
         <div class="col-title">Signal Feed</div>
         <div id="feedLastChecked" style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.04em;"></div>
       </div>
-      <div class="filters" id="filters"></div>
       <div class="feed" id="feed"></div>
     </div>
 
@@ -1976,11 +2014,13 @@ async function fetchESPNNews(sport) {
 }
 
 // Fetch schedule/scoreboard from ESPN
-async function fetchESPNSchedule(sport) {
+async function fetchESPNSchedule(sport, leagueOverride) {
   if(!ESPN_SPORT_MAP[sport]) return null;
   try {
     const {sport: s, league: l} = ESPN_SPORT_MAP[sport];
-    const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${l}/scoreboard`;
+    // For soccer use the current league, not the default eng.1
+    const leagueId = sport === 'soccer' && leagueOverride ? (ESPN_SOCCER_MAP[leagueOverride] || l) : l;
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${s}/${leagueId}/scoreboard`;
     const res = await fetch(url);
     if(!res.ok) return null;
     return await res.json();
@@ -2108,19 +2148,33 @@ function parseESPNNews(data) {
 }
 
 // Parse ESPN schedule into Scout schedule format
-function parseESPNSchedule(data) {
+function parseESPNSchedule(data, sportKey) {
   if(!data || !data.events) return [];
-  return data.events.slice(0,5).map(ev => {
+  const games = [];
+  data.events.forEach(ev => {
     const comps = ev.competitions?.[0];
     const home = comps?.competitors?.find(c => c.homeAway === 'home')?.team?.abbreviation || '';
     const away = comps?.competitors?.find(c => c.homeAway === 'away')?.team?.abbreviation || '';
-    const status = ev.status?.type?.name || '';
-    const live = status === 'STATUS_IN_PROGRESS';
-    const time = live ? `LIVE ${ev.status?.displayClock || ''}` :
-                 ev.date ? new Date(ev.date).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : 'TBD';
+    const homeFull = comps?.competitors?.find(c => c.homeAway === 'home')?.team?.displayName || home;
+    const awayFull = comps?.competitors?.find(c => c.homeAway === 'away')?.team?.displayName || away;
+    // Only skip definitively finished games — trust ESPN to return relevant games
+    const completed = ev.status?.type?.completed === true;
+    if(completed) return;
+    const statusName = ev.status?.type?.name || '';
+    const isLive = statusName.includes('IN_PROGRESS') || statusName.includes('HALFTIME');
+    const time = isLive
+      ? `LIVE ${ev.status?.displayClock || ''}`
+      : ev.date ? new Date(ev.date).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : 'TBD';
     const hasAlert = comps?.injuries?.length > 0;
-    return { t:`${away} vs ${home}`, time, live, a: hasAlert };
+    if(away || home) {
+      games.push({ t:`${away} vs ${home}`, time, live: isLive, a: hasAlert, full: `${awayFull} vs ${homeFull}` });
+    }
   });
+  // Store real games globally so ALL tabs can use them for AI generation
+  if(sportKey && games.length > 0) {
+    todayGames[sportKey] = games.map(g => g.full || g.t);
+  }
+  return games.slice(0, 8);
 }
 
 // Parse live odds into Scout card format
@@ -2337,8 +2391,9 @@ async function loadLiveData(sport, tab, league) {
 
   // Fetch schedule/scoreboard
   try {
-    const schedData = await fetchESPNSchedule(sport);
-    if(schedData) results.schedule = parseESPNSchedule(schedData);
+    // Use central fetchRealGames — same function used by Best Bets and intel cards
+    const liveGamesList = await fetchRealGames(sport, league);
+    results.schedule = liveGamesList.map(g => ({t: g.abbr, time: g.time, live: g.live, a: g.a}));
   } catch(e){}
 
   // Fetch ESPN news only (not injuries - those are handled separately in injury tab)
@@ -2851,6 +2906,58 @@ const DATA={
 
 // --- STATE ---
 let sport='nfl', itab='bestbets', league='epl', filter='all';
+let todayGames = {}; // keyed by "sport-league-date", stores today's real game matchups
+
+// Central function: fetch real ESPN games for any sport/league
+// Returns array of matchup strings e.g. ["Thunder vs Pacers", "Celtics vs Knicks"]
+async function fetchRealGames(sportName, leagueName) {
+  const key = sportName + (sportName === 'soccer' ? '-' + leagueName : '') + '-' + todayStr();
+  if(todayGames[key]) return todayGames[key]; // already fetched today
+
+  // Individual sports use 72h window; team sports use 24h
+  const individualSports = ['tennis','golf','boxing','nascar','f1','mma'];
+  if(individualSports.includes(sportName)) return []; // these use AI knowledge for upcoming events
+
+  try {
+    const map = ESPN_SPORT_MAP[sportName];
+    if(!map) return [];
+    const {sport: es, league: el} = map;
+    const lid = sportName === 'soccer' && leagueName ? (ESPN_SOCCER_MAP[leagueName] || el) : el;
+    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${es}/${lid}/scoreboard`);
+    if(!res.ok) return [];
+    const data = await res.json();
+    const games = [];
+    (data.events || []).forEach(ev => {
+      const completed = ev.status?.type?.completed === true;
+      if(completed) return;
+      const comp = ev.competitions?.[0];
+      const home = comp?.competitors?.find(c => c.homeAway === 'home')?.team?.displayName || '';
+      const away = comp?.competitors?.find(c => c.homeAway === 'away')?.team?.displayName || '';
+      const homeAbb = comp?.competitors?.find(c => c.homeAway === 'home')?.team?.abbreviation || '';
+      const awayAbb = comp?.competitors?.find(c => c.homeAway === 'away')?.team?.abbreviation || '';
+      const statusName = ev.status?.type?.name || '';
+      const isLive = statusName.includes('IN_PROGRESS') || statusName.includes('HALFTIME');
+      const gameTime = ev.date ? new Date(ev.date).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+      if(away || home) {
+        // For team sports: only include games within 24h from now or currently live
+        const evTime = ev.date ? new Date(ev.date).getTime() : null;
+        const now = Date.now();
+        const within24h = evTime && evTime <= (now + 24 * 60 * 60 * 1000);
+        if(isLive || within24h) {
+          games.push({
+            full: `${away || awayAbb} vs ${home || homeAbb}`,
+            abbr: `${awayAbb} vs ${homeAbb}`,
+            time: isLive ? 'LIVE' : gameTime,
+            live: isLive,
+            a: comp?.injuries?.length > 0
+          });
+        }
+      }
+    });
+    todayGames[key] = games;
+    return games;
+  } catch(e) { return []; }
+}
 // Render token - increments every time user switches tab/sport
 // Each async operation captures the token at start and checks at end
 let renderToken = 0;
@@ -2889,40 +2996,56 @@ function renderSchedule(){
 
 // --- NEWS PERSISTENCE ---
 // News stored in localStorage per sport, rolling 7-day window
-const NEWS_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+const NEWS_TTL = 365 * 24 * 60 * 60 * 1000; // permanent (1 year)
 
-function getNewsKey(s) { return 'scout_news_' + (s || sport); }
+// In-memory news cache — loaded from KV on first access per sport/league
+const newsMemCache = {};
+
+function getNewsKey(s) {
+  const suffix = (s || sport) === 'soccer' ? 'soccer_' + league : (s || sport);
+  return 'feed-' + suffix;
+}
 
 function loadStoredNews(s) {
-  try {
-    const raw = localStorage.getItem(getNewsKey(s));
-    if(!raw) return [];
-    const items = JSON.parse(raw);
-    const now = Date.now();
-    // Keep only items from the last 7 days
-    return items.filter(n => n.storedAt && (now - n.storedAt) < NEWS_TTL);
-  } catch(e) { return []; }
+  return newsMemCache[getNewsKey(s)] || [];
 }
 
 function normalizeHeadline(h) {
-  // Normalize to catch near-duplicates
   return (h || '').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
 }
 
-function saveNewsItems(newItems, s) {
+async function loadNewsFromKV(s) {
+  const key = getNewsKey(s);
+  if(newsMemCache[key]) return newsMemCache[key];
   try {
-    const existing = loadStoredNews(s);
-    const now = Date.now();
-    // Deduplicate by normalized headline (catches minor text differences)
-    const existingNorm = new Set(existing.map(n => normalizeHeadline(n.h)));
-    const fresh = newItems
-      .filter(n => n.h && n.h.length > 10 && !existingNorm.has(normalizeHeadline(n.h)))
-      .map(n => ({...n, storedAt: n.fetchedAt || now}));
-    if(!fresh.length) return existing;
-    const merged = [...fresh, ...existing].slice(0, 150);
-    localStorage.setItem(getNewsKey(s), JSON.stringify(merged));
-    return merged;
-  } catch(e) { return loadStoredNews(s); }
+    const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'getNews', key})
+    });
+    const data = await res.json();
+    newsMemCache[key] = data.items || [];
+    return newsMemCache[key];
+  } catch(e) { return []; }
+}
+
+async function saveNewsItems(newItems, s) {
+  const key = getNewsKey(s || sport);
+  const existing = newsMemCache[key] || [];
+  const now = Date.now();
+  const existingNorm = new Set(existing.map(n => normalizeHeadline(n.h)));
+  const fresh = newItems
+    .filter(n => n.h && n.h.length > 10 && !existingNorm.has(normalizeHeadline(n.h)))
+    .map(n => ({...n, storedAt: now, publishedAt: n.fetchedAt || now}));
+  if(!fresh.length) return existing;
+  const merged = [...fresh, ...existing].slice(0, 100);
+  newsMemCache[key] = merged;
+  renderNews();
+  // Save to KV in background
+  fetch('https://scout-chat.felipestinchi17.workers.dev', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'setNews', key, items: merged})
+  }).catch(() => {});
+  return merged;
 }
 
 function formatNewsTime(storedAt) {
@@ -2941,19 +3064,18 @@ function formatNewsTime(storedAt) {
 
 // --- NEWS ---
 function renderNews(){
-  // Load from localStorage first (persisted), then overlay live items
   const stored = loadStoredNews(sport);
   const live = DATA[sport]?.news || [];
-  // Merge: live items on top, then stored
   const liveHeadlines = new Set(live.map(n => n.h));
   const combined = [...live, ...stored.filter(n => !liveHeadlines.has(n.h))];
+  // Sort by actual publish time descending (newest first)
+  combined.sort((a, b) => {
+    const ta = b.publishedAt || b.fetchedAt || b.storedAt || 0;
+    const tb = a.publishedAt || a.fetchedAt || a.storedAt || 0;
+    return ta - tb;
+  });
 
-  const tags = ['all', ...new Set(combined.map(n => n.tag).filter(Boolean))];
-  document.getElementById('filters').innerHTML = tags.map(t =>
-    `<div class="filter-btn ${filter===t?'on':''}" onclick="setFilter('${t}')">${FMAP[t]||t.toUpperCase()}</div>`
-  ).join('');
-
-  const items = filter === 'all' ? combined : combined.filter(n => n.tag === filter);
+  const items = combined; // Always show all — no filtering
 
   const skeletonRow = `<div style="padding:14px 16px;border-bottom:1px solid var(--line);opacity:0.15">
     <div style="height:8px;background:var(--text3);border-radius:3px;width:40%;margin-bottom:8px"></div>
@@ -2999,9 +3121,14 @@ function setLeague(id,el){
   league=id;
   document.querySelectorAll('.lb-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  // Clear cache for new league and reload
+  // Clear ALL soccer live data cache so new league news loads fresh
   const keysToDelete = Object.keys(liveCache).filter(k => k.includes('soccer'));
   keysToDelete.forEach(k => { delete liveCache[k]; delete liveCacheTimestamps[k]; });
+  // Clear BB memory cache for the old league so new league generates fresh picks
+  Object.keys(bbMemCache).filter(k => k.startsWith('soccer')).forEach(k => delete bbMemCache[k]);
+  // Load news for new league from KV then render
+  loadNewsFromKV('soccer').then(() => renderNews());
+  renderNews();
   renderAll('soccer');
 }
 
@@ -3117,7 +3244,7 @@ const AI_CARD_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 function isAiCacheValid(key) {
   try {
-    const stored = sessionStorage.getItem('scout_ai_' + key);
+    const stored = sessionStorage.getItem('scout_ai2_' + key);
     if(!stored) return false;
     const {data, ts} = JSON.parse(stored);
     return data && (Date.now() - ts) < AI_CARD_TTL;
@@ -3126,7 +3253,7 @@ function isAiCacheValid(key) {
 
 function getAiCache(key) {
   try {
-    const stored = sessionStorage.getItem('scout_ai_' + key);
+    const stored = sessionStorage.getItem('scout_ai2_' + key);
     if(!stored) return null;
     return JSON.parse(stored).data;
   } catch(e) { return null; }
@@ -3134,7 +3261,7 @@ function getAiCache(key) {
 
 function setAiCache(key, data) {
   try {
-    sessionStorage.setItem('scout_ai_' + key, JSON.stringify({data, ts: Date.now()}));
+    sessionStorage.setItem('scout_ai2_' + key, JSON.stringify({data, ts: Date.now()}));
   } catch(e) {}
 }
 
@@ -3281,6 +3408,10 @@ async function generateAICards(sportName, tabName, leagueName) {
   const sportLabel = sportName === 'soccer' ? `soccer ${leagueName || 'epl'}` : sportName;
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
 
+  // Fetch real ESPN games — same data the schedule bar uses
+  const realGamesList = await fetchRealGames(sportName, leagueName);
+  const realMatchups = realGamesList.map(g => g.full);
+
   const tabSearch = {
     injuries: `current ${sportLabel} injury report ${today} upcoming games only`,
     lines: `${sportLabel} betting lines odds movement ${today}`,
@@ -3340,59 +3471,58 @@ async function generateAICards(sportName, tabName, leagueName) {
     } catch(e) {}
   }
 
-  // LINES: Real odds from The Odds API (already have key)
+  // If no real games for a team sport — don't generate fake cards
+  const noScoreboardSport = ['tennis','golf','boxing','nascar','f1','mma'].includes(sportName);
+  if(!noScoreboardSport && realMatchups.length === 0) {
+    return null; // caller will show "no games" message
+  }
+
+  const gamesLine = realMatchups.length > 0
+    ? `Today's real ${sportLabel} games (from ESPN): ${realMatchups.slice(0,6).join(' | ')}`
+    : `Upcoming ${sportLabel} events this week`;
+
+  // LINES: Real odds from The Odds API first
   if(tabName === 'lines') {
     const oddsData = await fetchLiveOdds(sportName, leagueName);
     if(oddsData && oddsData.length > 0) {
       const cards = parseOddsToCards(oddsData);
-      if(cards && cards.length > 0) {
-        setAiCache(cacheKey, cards);
-        return cards;
-      }
+      if(cards && cards.length > 0) { setAiCache(cacheKey, cards); return cards; }
     }
+    // Fall through to AI — but only for real games
   }
 
-  // WEATHER: OpenWeatherMap (free, already have key)
+  // WEATHER: Use real game venues from ESPN games
   if(tabName === 'weather') {
     const cards = await generateWeatherCards(sportName, leagueName);
-    if(cards && cards.length > 0) {
-      setAiCache(cacheKey, cards);
-      return cards;
-    }
+    if(cards && cards.length > 0) { setAiCache(cacheKey, cards); return cards; }
   }
 
-  // FATIGUE: ESPN schedule data (free)
+  // FATIGUE: Use real schedule
   if(tabName === 'fatigue') {
     const cards = await generateFatigueCards(sportName, leagueName);
-    if(cards && cards.length > 0) {
-      setAiCache(cacheKey, cards);
-      return cards;
-    }
+    if(cards && cards.length > 0) { setAiCache(cacheKey, cards); return cards; }
   }
-
-  // REVENGE/MATCHUPS/SUSPENSION/ROTATION: AI with historical knowledge (cheap)
-  // These tabs use pattern-based analysis that AI knows accurately
 
   const seasonCtx = SPORT_SEASONS[sportName] || (sportName + ' 2025 season');
   const msg = `Today is ${today}. You are analyzing the ${seasonCtx}.
 
-Generate 3 sharp betting intel cards for ${sportLabel.toUpperCase()} ${tabName.toUpperCase()}.
+${gamesLine}
+
+STRICT RULE: You MUST ONLY generate cards about the teams/players/matchups listed above. Do not reference any other games, past games, or invented matchups. If a tab doesn't apply to any of today's games, still use those teams.
+
+Generate 3 betting intel cards for ${sportLabel.toUpperCase()} — ${tabName.toUpperCase()}.
 
 ${focus}
 
-Be specific to the current season. For injuries: use current 2025 rosters. For suspensions: current disciplinary records. For matchups: current form and recent results. For lines: reference realistic current odds ranges for ${sportLabel}.
+Each card must reference a specific team or player from today's games listed above.
 
-For individual sports (boxing, MMA, tennis, golf, F1, NASCAR): focus on the specific athletes/drivers competing in current events — matchup edges, form, conditions, styles.
-
-Only include information you are confident is accurate for the current season. If uncertain about a specific current fact, use well-established historical trend data instead.
-
-Return ONLY this JSON (no other text):
-{"cards":[{"team":"TEAM, PLAYER, OR MATCHUP","sc":"amber","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"specific accurate detail for current season"},{"icon":"TGT","label":"IMPACT","t":"betting impact with specific numbers"},{"icon":"LNE","label":"EDGE","t":"the actionable betting angle"}],"trend":{"label":"HISTORICAL TREND","stats":[{"n":"41%","l":"COVER RATE","c":"red"},{"n":"58%","l":"WIN RATE","c":"green"}],"bars":[{"l":"Situation A","p":41,"c":"bar-red"},{"l":"Situation B","p":62,"c":"bar-green"}],"sample":"n=X games"},"verdict":"red","vt":"Direct actionable verdict — bet it, fade it, or watch it."}]}
+Return ONLY this JSON:
+{"cards":[{"team":"TEAM FROM TODAY'S GAMES","sc":"amber","st":"STATUS","conf":7,"rows":[{"icon":"INJ","label":"LABEL","t":"specific detail about this team today"},{"icon":"TGT","label":"IMPACT","t":"betting impact"},{"icon":"LNE","label":"EDGE","t":"actionable angle"}],"trend":{"label":"HISTORICAL TREND","stats":[{"n":"58%","l":"COVER RATE","c":"green"}],"bars":[{"l":"Situation","p":58,"c":"bar-green"}],"sample":"n=X games"},"verdict":"green","vt":"Direct verdict for this specific game."}]}
 
 Rules: sc/verdict=green|red|amber. conf=1-10. icon=INJ|TGT|LNE|SHP|WX|FAT|RVNG|OK. bar c=bar-green|bar-red|bar-amber.`;
 
   const dateStr = new Date().toISOString().split('T')[0];
-  const serverCacheKey = 'cards-' + sportName + '-' + tabName + '-' + leagueName + '-' + dateStr;
+  const serverCacheKey = 'cards2-' + sportName + '-' + tabName + '-' + leagueName + '-' + dateStr;
 
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
@@ -3461,7 +3591,7 @@ async function renderAICards(sportName, tabName, leagueName) {
   // Show analyze button
   body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:14px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
     <div style="font-size:13px;color:var(--text2);font-family:var(--sans);font-weight:500">${sportName.toUpperCase()}${ln} — ${tabName.toUpperCase()}</div>
-    <div style="font-size:11px;color:var(--text3);max-width:220px;line-height:1.6">AI-powered analysis using historical betting data</div>
+    <div style="font-size:11px;color:var(--text3);max-width:220px;line-height:1.6">Market intelligence using historical betting data</div>
     <button onclick="startAIAnalysis('${sportName}','${tabName}','${leagueName}')" style="background:var(--green);color:#000;border:none;padding:10px 24px;border-radius:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.08em;display:flex;align-items:center;gap:8px">
       ◆ ANALYZE WITH SCOUT AI
     </button>
@@ -3514,10 +3644,12 @@ async function startAIAnalysis(sportName, tabName, leagueName) {
 
   if(!cards || !cards.length) {
     if(sport === sportName && itab === tabName) {
-      document.getElementById('intelBody').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text3);font-family:var(--mono);font-size:11px;text-align:center">
-        <div style="font-size:28px;opacity:0.15">--</div>
-        <div>Could not generate analysis. Check your Anthropic credits.</div>
-        <button onclick="startAIAnalysis('${sportName}','${tabName}','${leagueName}')" style="background:var(--green);color:#000;border:none;padding:8px 16px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em">RETRY</button>
+      const noGames = !['tennis','golf','boxing','nascar','f1','mma'].includes(sportName);
+      document.getElementById('intelBody').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;padding:20px;">
+        <div style="font-size:28px;opacity:0.15">—</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text2)">${noGames ? 'No ' + sportName.toUpperCase() + ' games scheduled today' : 'No data available'}</div>
+        <div style="font-size:11px;color:var(--text3);max-width:240px;line-height:1.7;">${noGames ? 'Scout only generates intel for real scheduled matchups. Check back on a game day.' : 'Could not load analysis.'}</div>
+        ${noGames ? '' : `<button onclick="startAIAnalysis('${sportName}','${tabName}','${leagueName}')" style="background:var(--green);color:#000;border:none;padding:8px 16px;border-radius:6px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em;">RETRY</button>`}
       </div>`;
     }
     return;
@@ -3550,7 +3682,7 @@ function renderAICardList(cards, sportName, tabName, leagueName, token) {
   const CF = {green:'bar-green',red:'bar-red',amber:'bar-amber'};
 
   body.innerHTML = `
-    <div class="intel-section-label">${sportName.toUpperCase()}${ln} . ${tabName.toUpperCase()} <span style="color:var(--green);font-size:9px;margin-left:8px">AI-POWERED</span></div>
+    <div class="intel-section-label">${sportName.toUpperCase()}${ln} . ${tabName.toUpperCase()} <span style="color:var(--green);font-size:9px;margin-left:8px">SCOUT INTEL</span></div>
     <div class="cards-grid">
       ${cards.map(c => `
         <div class="i-card">
@@ -3728,13 +3860,21 @@ function setCache(key, data) {
 }
 
 async function renderAll(targetSport){
-  // Guard against stale async calls overwriting current sport
   const currentSport = targetSport || sport;
   renderSchedule();
-  renderNews();
+  // Load news from KV first, then render
+  loadNewsFromKV(currentSport).then(() => {
+    if(sport === currentSport) renderNews();
+  });
+  renderNews(); // render immediately with whatever is in memory
   renderIntelTabs();
   renderCards();
-  // Kick off live data fetch in background
+  // Fetch real games first, then update schedule bar immediately
+  fetchRealGames(currentSport, league).then(games => {
+    if(sport === currentSport) {
+      renderScheduleFromLive(games.map(g => ({t: g.abbr, time: g.time, live: g.live, a: g.a})));
+    }
+  });
   fetchAndMerge(currentSport);
 }
 
@@ -3765,10 +3905,10 @@ async function fetchAndMerge(targetSport){
 
 function applyLiveData(live) {
   if(!live) return;
-  if(live.schedule && live.schedule.length > 0) renderScheduleFromLive(live.schedule);
+  // Always update schedule bar — even empty replaces "Loading..."
+  renderScheduleFromLive(live.schedule || []);
   if(live.news && live.news.length > 0) prependLiveNews(live.news);
   if(live.cards && live.cards.length > 0 && itab === 'lines') renderLiveCards(live.cards);
-  // Update last checked
   const el = document.getElementById('feedLastChecked');
   if(el) {
     const t = new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
@@ -3834,9 +3974,8 @@ function renderScheduleFromLive(games){
 
 function prependLiveNews(newsItems){
   if(!newsItems || !newsItems.length) return;
-  // Save to localStorage for persistence
+  // Save to localStorage — key is league-aware for soccer
   saveNewsItems(newsItems, sport);
-  // Re-render the feed to show updated items
   renderNews();
 }
 
@@ -3963,36 +4102,33 @@ function todayStr() {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+function tomorrowStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 function getBBKey(cacheId) { return 'scout_bb_' + cacheId; }
 
+// In-memory BB cache — server KV is source of truth, memory avoids re-fetch within session
+const bbMemCache = {};
+
 function isBBCacheValid(cacheId) {
-  try {
-    const raw = localStorage.getItem(getBBKey(cacheId));
-    if(!raw) return false;
-    const parsed = JSON.parse(raw);
-    // HARD check: stored date must match today exactly
-    return parsed.date === todayStr() && Array.isArray(parsed.data) && parsed.data.length > 0;
-  } catch(e) { return false; }
+  // Check in-memory first (same session, same day)
+  if(bbMemCache[cacheId] && bbMemCache[cacheId].date === todayStr()) return true;
+  return false;
 }
 
 function getBBCache(cacheId) {
-  try {
-    const raw = localStorage.getItem(getBBKey(cacheId));
-    if(!raw) return null;
-    const parsed = JSON.parse(raw);
-    if(parsed.date !== todayStr()) return null; // expired
-    return parsed.data;
-  } catch(e) { return null; }
+  if(bbMemCache[cacheId] && bbMemCache[cacheId].date === todayStr()) {
+    return bbMemCache[cacheId].data;
+  }
+  return null;
 }
 
 function setBBCache(data, cacheId) {
-  try {
-    localStorage.setItem(getBBKey(cacheId), JSON.stringify({
-      data,
-      date: todayStr(), // store date not timestamp
-      ts: Date.now()
-    }));
-  } catch(e) {}
+  // Store in memory only — server KV handles persistence across devices
+  bbMemCache[cacheId] = {data, date: todayStr(), ts: Date.now()};
 }
 
 // Clear ALL best bets from previous days on load — aggressive wipe
@@ -4071,11 +4207,11 @@ function renderBestBetsTab() {
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:260px;gap:16px;text-align:center;padding:20px;">
       <div style="font-size:32px;">🔥</div>
       <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--text)">Best Bets — ${sportLabel}</div>
-      <div style="font-size:13px;color:var(--text2);max-width:280px;line-height:1.6;">AI-powered picks for today's ${sportLabel} games. Spreads, moneylines, and totals — only for games happening now or soon.</div>
+      <div style="font-size:13px;color:var(--text2);max-width:280px;line-height:1.6;">Scout signals for today's ${sportLabel} games. Spreads, moneylines, and totals — only for games happening now or soon.</div>
       <button id="bbGetBtn" onclick="loadBestBetsTab('${s}','${lg}')" style="background:var(--green);color:#000;border:none;padding:12px 28px;border-radius:8px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.08em;display:flex;align-items:center;gap:8px;">
         🔥 GET ${sportLabel} BEST BETS
       </button>
-      <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Picks cached 12 hours · Updates daily</div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Resets daily at midnight · 24h window</div>
     </div>`;
 }
 
@@ -4116,27 +4252,57 @@ function renderBestBetsInTab(picks, sportLabel) {
           <div style="font-size:18px;">🔥</div>
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--text)">Best Bets — ${sportLabel}${ln}</div>
-            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">AI-POWERED · UPDATED TODAY</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+              <div style="width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite;"></div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">SIGNALS ACTIVE · ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+            </div>
           </div>
         </div>
-        <button onclick="loadBestBets(true,'${sport}').then(()=>{if(itab==='bestbets')renderBestBetsTab()})" style="background:transparent;border:1px solid var(--line2);color:var(--text3);padding:5px 12px;border-radius:6px;font-family:var(--mono);font-size:10px;cursor:pointer;">↻ REFRESH</button>
+        <button onclick="(async()=>{const lg=sport==='soccer'?league:'';const cid=sport+(lg?'-'+lg:'');delete bbMemCache[cid];await loadBestBets(true,sport,lg);if(itab==='bestbets')renderBestBetsTab();})()" style="background:transparent;border:1px solid var(--line2);color:var(--text3);padding:5px 12px;border-radius:6px;font-family:var(--mono);font-size:10px;cursor:pointer;">↻ REFRESH</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
-        ${picks.map(p => `
-          <div style="background:var(--card);border:1px solid ${p.hot ? 'rgba(16,185,129,0.35)' : 'var(--line)'};border-radius:10px;padding:14px;position:relative;${p.hot ? 'box-shadow:0 0 20px rgba(16,185,129,0.06);' : ''}">
-            ${p.hot ? '<div style="position:absolute;top:-1px;right:12px;background:var(--green);color:#000;font-size:8px;font-family:var(--mono);font-weight:700;padding:2px 8px;border-radius:0 0 5px 5px;letter-spacing:0.06em;">🔥 HOT PICK</div>' : ''}
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <div style="font-size:10px;font-family:var(--mono);font-weight:700;color:var(--text3);letter-spacing:0.08em;">${p.sport} · ${p.type}</div>
-              <div style="font-size:9px;font-family:var(--mono);color:var(--text3);background:var(--card2);padding:2px 7px;border-radius:3px;">${p.gameday || 'TODAY'}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+        ${picks.map(p => {
+          const isHot = p.hot || p.conf >= 9;
+          const isMed = !isHot && p.conf >= 7;
+          const borderColor = isHot ? 'rgba(16,185,129,0.5)' : isMed ? 'rgba(52,211,153,0.3)' : p.conf >= 5 ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.2)';
+          const accentColor = isHot ? 'var(--green)' : isMed ? '#34d399' : 'var(--amber)';
+          const badgeBg = isHot ? 'rgba(16,185,129,0.15)' : isMed ? 'rgba(52,211,153,0.1)' : 'rgba(245,158,11,0.1)';
+          const tier = isHot ? 'A+ EDGE' : isMed ? 'STRONG EDGE' : 'EDGE';
+          const score = Math.min(100, Math.round(p.conf * 9.5) + (isHot ? 5 : 0));
+          // Truncate text to keep cards short
+          const shortReason = p.reason ? (p.reason.length > 80 ? p.reason.substring(0,80).trim() + '…' : p.reason) : '';
+          const shortWhy = p.why ? (p.why.length > 80 ? p.why.substring(0,80).trim() + '…' : p.why) : '';          return `
+          <div style="background:var(--card);border:1px solid ${borderColor};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:9px;box-shadow:0 0 16px ${borderColor.replace('0.5','0.06').replace('0.3','0.04').replace('0.2','0.03')};">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                <span style="font-family:var(--mono);font-size:8px;font-weight:700;color:${accentColor};background:${badgeBg};border:1px solid ${borderColor};padding:2px 8px;border-radius:4px;letter-spacing:0.07em;">${tier}</span>
+                <span style="font-family:var(--mono);font-size:9px;color:var(--text3);">${p.sport} · ${p.type}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                <span style="font-family:var(--mono);font-size:9px;color:var(--text3);">EDGE</span>
+                <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${accentColor};">${score}</span>
+              </div>
             </div>
-            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;">${p.team}</div>
-            <div style="font-size:13px;color:var(--green);font-family:var(--mono);font-weight:600;margin-bottom:8px;">${p.bet}</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;">${p.reason}</div>
-            <div style="display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line);">
-              <div style="flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden;"><div style="height:100%;width:${p.conf*10}%;background:${p.conf>=8?'var(--green)':p.conf>=6?'var(--amber)':'var(--red)'};border-radius:2px;"></div></div>
-              <div style="font-size:9px;font-family:var(--mono);color:var(--text3);white-space:nowrap;">CONF ${p.conf}/10</div>
+            <div style="border-bottom:1px solid var(--line);padding-bottom:9px;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;">${p.team}</div>
+              <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${accentColor};">${p.bet}</div>
             </div>
-          </div>`).join('')}
+            <div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:0.1em;margin-bottom:3px;">THE EDGE</div>
+              <div style="font-size:11.5px;color:var(--text2);line-height:1.5;">${(p.reason||'').split(' ').slice(0,12).join(' ')}</div>
+            </div>
+            ${p.why ? `<div>
+              <div style="font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:0.1em;margin-bottom:3px;">WHY MISPRICED</div>
+              <div style="font-size:11px;color:var(--text3);line-height:1.5;">${(p.why||'').split(' ').slice(0,10).join(' ')}</div>
+            </div>` : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--line);">
+              <span style="font-family:var(--mono);font-size:9px;color:var(--text3);">${p.gameday||'TODAY'}</span>
+              <div style="display:flex;align-items:center;gap:7px;">
+                <div style="width:56px;height:2px;background:var(--line);border-radius:1px;overflow:hidden;"><div style="height:100%;width:${score}%;background:${accentColor};border-radius:1px;"></div></div>
+                <span style="font-family:var(--mono);font-size:9px;color:var(--text3);">${score}/100</span>
+              </div>
+            </div>
+          </div>`;}).join('')}
       </div>
     </div>`;
 }
@@ -4192,59 +4358,67 @@ async function loadBestBets(force, targetSport, targetLeague) {
   const noScoreboardSports = ['tennis', 'golf', 'boxing', 'nascar', 'f1', 'mma'];
 
   // Step 1: Fetch real upcoming games from ESPN (only for team sports)
-  let realGames = [];
-  if(!noScoreboardSports.includes(s)) {
-    try {
-      const espnMap = ESPN_SPORT_MAP[s];
-      if(espnMap) {
-        const {sport: es, league: el2} = espnMap;
-        const leagueId = s === 'soccer' && leagueAtStart ? ESPN_SOCCER_MAP[leagueAtStart] || el2 : el2;
-        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${es}/${leagueId}/scoreboard`);
-        if(res.ok) {
-          const data = await res.json();
-          (data.events || []).forEach(ev => {
-            const comp = ev.competitions?.[0];
-            const teams = (comp?.competitors || []).map(c => c.team?.shortDisplayName || '').filter(Boolean);
-            const status = ev.status?.type?.name || '';
-            const gameTime = ev.date ? new Date(ev.date).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) : '';
-            if(teams.length >= 2 && !status.includes('Final')) {
-              realGames.push({
-                matchup: teams[0] + ' vs ' + teams[1],
-                time: gameTime,
-                live: status.includes('InProgress')
-              });
-            }
-          });
-        }
-      }
-    } catch(e) { console.warn('ESPN fetch for bets failed:', e); }
+  const realGamesList = noScoreboardSports.includes(s) ? [] : await fetchRealGames(s, leagueAtStart);
+  let realGames = realGamesList.map(g => ({matchup: g.full, time: g.time, live: g.live}));
+
+  // If team sport has NO games in next 24h — stop here, show no-games message
+  if(!noScoreboardSports.includes(s) && realGames.length === 0) {
+    bbLoadingSet.delete(cacheId);
+    const leagueMatchNG = s === 'soccer' ? league === leagueAtStart : true;
+    if(sport === s && leagueMatchNG && itab === 'bestbets') {
+      const bodyNG = document.getElementById('intelBody');
+      if(bodyNG) bodyNG.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;padding:20px;">
+        <div style="font-size:28px;opacity:0.2">—</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text2)">No ${sportLabel} games today</div>
+        <div style="font-size:11px;color:var(--text3);max-width:240px;line-height:1.7;">No games in the next 24 hours. Scout generates picks when games are upcoming.</div>
+      </div>`;
+    }
+    return;
   }
 
   // Step 2: Generate AI picks
   const today = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
   let gamesContext = '';
-  if(realGames.length > 0) {
-    gamesContext = 'Here are the REAL upcoming ' + sportLabel + ' games/events today:\n' +
-      realGames.map((g, i) => (i+1) + '. ' + g.matchup + (g.live ? ' (LIVE NOW)' : ' at ' + g.time)).join('\n') +
-      '\n\nGenerate betting picks for these specific matchups.';
+  // Only include games in next 24 hours
+  const next24Games = realGames.filter(g => g.live || g.time);
+  const isTeamSport = !noScoreboardSports.includes(s);
+
+  if(next24Games.length > 0) {
+    gamesContext = 'ONLY generate picks for these real games happening TODAY:\n' +
+      next24Games.map((g, i) => (i+1) + '. ' + g.matchup + (g.live ? ' (LIVE NOW)' : ' at ' + g.time)).join('\n') +
+      '\n\nThese are the ONLY valid matchups. Do not invent any other games.';
+    realGames = next24Games;
   } else if(noScoreboardSports.includes(s)) {
-    gamesContext = 'Generate picks for upcoming ' + sportLabel + ' events this week. For ' + sportLabel + ' focus on: ' +
-      (s === 'tennis' ? 'current tournament matches, player form, and surface advantages' :
-       s === 'golf' ? 'current tournament round leaders, course fit, and recent form' :
-       s === 'boxing' ? 'upcoming fight cards and fighter matchup analysis' :
-       s === 'nascar' ? 'upcoming race, track type advantages, and driver form' :
-       s === 'f1' ? 'upcoming Grand Prix, constructor advantages, and driver standings' :
-       s === 'mma' ? 'upcoming UFC/MMA fight card matchups and fighting style edges' : 'upcoming events') + '.';
+    // Individual sports: 72h window — AI uses own knowledge for upcoming events
+    gamesContext = 'Generate picks for ' + sportLabel + ' events happening in the next 72 hours. ' +
+      (s === 'tennis' ? 'Focus on current ATP/WTA tournament matches this week.' :
+       s === 'golf' ? 'Focus on current PGA Tour event rounds and player matchups.' :
+       s === 'boxing' ? 'Focus on fight cards scheduled in the next 3 days.' :
+       s === 'nascar' ? 'Focus on this weekend\'s NASCAR race at the current track.' :
+       s === 'f1' ? 'Focus on the upcoming Formula 1 Grand Prix this weekend.' :
+       s === 'mma' ? 'Focus on the UFC/MMA fight card in the next 3 days.' : '') +
+      ' Only include events you are highly confident are real and scheduled.';
   } else {
-    gamesContext = 'No games found via live feed for ' + sportLabel + ' today. Generate picks for the most likely upcoming ' + sportLabel + ' games this week based on current standings and schedule.';
+    // Team sport with no ESPN games found — show no games rather than fake picks
+    const leagueMatch5 = sportAtStart === 'soccer' ? league === leagueAtStart : true;
+    if(sport === sportAtStart && leagueMatch5 && itab === 'bestbets') {
+      const body5 = document.getElementById('intelBody');
+      if(body5) body5.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;text-align:center;padding:20px;">
+        <div style="font-size:28px;opacity:0.2">—</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text2)">No ${sportLabel} games today</div>
+        <div style="font-size:11px;color:var(--text3);max-width:240px;line-height:1.7;">Scout generates picks within 24 hours of tipoff. No games in the next 24 hours for this league.</div>
+      </div>`;
+    }
+    bbLoadingSet.delete(cacheId);
+    return;
   }
 
   const seasonContext = SPORT_SEASONS[s] || (s + ' current season 2025');
-  const msg = 'Today is ' + today + '. You are analyzing the ' + seasonContext + '.\n\n' + gamesContext + '\n\nYour job: find REAL betting edges, not random picks. Only recommend a bet if there is a genuine reason — injury impact, line value, sharp steam, situational trend, or statistical edge. If a game has no clear edge, skip it. Quality over quantity.\n\nFor each pick:\n- Give a specific reason grounded in data or situational context\n- Explain the market inefficiency (why books have this wrong)\n- Only assign conf 8+ if the edge is genuinely strong\n- For individual sports (boxing, MMA, tennis, golf, F1, NASCAR): focus on fighter/player matchup edges, form, and specific conditions\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Exact matchup or player name","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"Specific data-backed reason this bet wins.","why":"The market inefficiency — what the books got wrong.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only for conf 8+. type=SPREAD|MONEYLINE|TOTAL. Generate 2-5 QUALITY picks only — fewer strong picks beats more weak ones.';
+  const msg = 'Today is ' + today + '. You are analyzing the ' + seasonContext + '.\n\n' + gamesContext + '\n\nGenerate 3-5 sharp betting picks. Keep descriptions SHORT — one punchy sentence each, max 12 words.\n\nExamples of the length I want:\nreason: "Bournemouth conceded 12 in last 4 — City needs goals for GD."\nwhy: "Market not pricing City\'s title desperation."\n\nreason: "Celtics 0-4 ATS on back-to-backs this season."\nwhy: "Line set before injury report dropped."\n\nreason: "Tank KOs 71% of opponents — this guy\'s been stopped twice."\nwhy: "Public on the name, sharps on the finish."\n\nReturn ONLY this JSON:\n{"picks":[{"sport":"' + sportLabel + '","team":"Matchup","bet":"-3.5 ATS","type":"SPREAD","conf":8,"hot":true,"reason":"Max 12 word punchy reason.","why":"Max 10 word market inefficiency.","gameday":"Today"}]}\n\nRules: conf=1-10. hot=true only conf 8+. type=SPREAD|MONEYLINE|TOTAL. SHORT text only.';
 
   // Server KV cache keyed by sport+league+DATE — auto-expires when date changes, shared for all users
   const dateStr = todayStr();
-  const serverBBKey = 'bb-' + sportAtStart + '-' + leagueAtStart + '-' + dateStr;
+  const serverBBKey = 'bb6-' + sportAtStart + '-' + leagueAtStart + '-' + dateStr;
 
   try {
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev', {
@@ -4567,22 +4741,17 @@ function initDash(){
   if(inited)return;
   inited=true;
 
-  // One-time hard wipe of ALL bestbets cache (clears stale data from any previous code version)
-  const today = todayStr();
-  [localStorage, sessionStorage].forEach(store => {
-    try {
-      Object.keys(store).forEach(k => {
-        if(k.includes('bestbets') || k.includes('scout_bb')) {
-          try {
-            const v = JSON.parse(store.getItem(k));
-            if(!v.date || v.date !== today) store.removeItem(k);
-          } catch(e) { store.removeItem(k); }
-        }
-      });
-    } catch(e) {}
-  });
-
-  clearYesterdayBets();
+  // Wipe ALL old cache keys on every init — forces fresh generation
+  try {
+    // Clear old BB keys
+    Object.keys(localStorage).filter(k => k.includes('bestbets') || k.includes('scout_bb')).forEach(k => localStorage.removeItem(k));
+    // Clear old intel card keys (old prefix was scout_ai_, new is scout_ai2_)
+    Object.keys(sessionStorage).forEach(k => {
+      if(k.includes('bestbets') || k.includes('scout_bb') || k.startsWith('scout_ai_')) {
+        sessionStorage.removeItem(k);
+      }
+    });
+  } catch(e) {}
   buildTicker();
   buildSportBar();
   renderAll();
