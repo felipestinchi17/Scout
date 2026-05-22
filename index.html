@@ -2178,7 +2178,7 @@ function parseESPNSchedule(data, sportKey) {
 // Parse live odds into Scout card format
 function parseOddsToCards(games) {
   if(!games || !games.length) return [];
-  return games.slice(0,6).map(g => {
+  return games.map(g => {
     const book = g.bookmakers?.[0];
     const h2h = book?.markets?.find(m => m.key === 'h2h');
     const spread = book?.markets?.find(m => m.key === 'spreads');
@@ -2264,7 +2264,7 @@ async function detectMarketMovement(sportName, leagueName) {
     const prev = marketMoveCache[cacheKey];
     const now = Date.now();
 
-    oddsData.slice(0, 8).forEach(game => {
+    oddsData.forEach(game => {
       const book = game.bookmakers?.[0];
       if(!book) return;
       const bookName = book.title || 'DraftKings';
@@ -2907,53 +2907,73 @@ let sport='nfl', itab='bestbets', league='epl', filter='all';
 let todayGames = {}; // keyed by "sport-league-date", stores today's real game matchups
 
 // Central function: fetch real ESPN games for any sport/league
-// Returns array of matchup strings e.g. ["Thunder vs Pacers", "Celtics vs Knicks"]
 async function fetchRealGames(sportName, leagueName) {
   const key = sportName + (sportName === 'soccer' ? '-' + leagueName : '') + '-' + todayStr();
-  if(todayGames[key]) return todayGames[key]; // already fetched today
+  if(todayGames[key] && todayGames[key].length > 0) return todayGames[key]; // only use cache if non-empty
 
-  // Individual sports use 72h window; team sports use 24h
   const individualSports = ['tennis','golf','boxing','nascar','f1','mma'];
-  if(individualSports.includes(sportName)) return []; // these use AI knowledge for upcoming events
+  if(individualSports.includes(sportName)) return [];
 
   try {
     const map = ESPN_SPORT_MAP[sportName];
     if(!map) return [];
     const {sport: es, league: el} = map;
     const lid = sportName === 'soccer' && leagueName ? (ESPN_SOCCER_MAP[leagueName] || el) : el;
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${es}/${lid}/scoreboard`);
-    if(!res.ok) return [];
-    const data = await res.json();
+    // Build date strings for ESPN (YYYYMMDD format)
+    const d = new Date();
+    const espnToday = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+    const d2 = new Date(d); d2.setDate(d2.getDate()+1);
+    const espnTomorrow = d2.getFullYear() + String(d2.getMonth()+1).padStart(2,'0') + String(d2.getDate()).padStart(2,'0');
+
+    // Fetch today AND tomorrow to catch evening games
+    const fetchESPN = async (dateStr) => {
+      try {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${es}/${lid}/scoreboard?dates=${dateStr}&limit=20`);
+        if(!r.ok) return [];
+        const d = await r.json();
+        return d.events || [];
+      } catch(e) { return []; }
+    };
+
+    let allEvents = await fetchESPN(espnToday);
+    // If nothing for today, try tomorrow (handles late-night UTC vs local time)
+    if(allEvents.length === 0) allEvents = await fetchESPN(espnTomorrow);
+    // If still nothing, try without date param (ESPN default)
+    if(allEvents.length === 0) {
+      try {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${es}/${lid}/scoreboard`);
+        if(r.ok) { const dd = await r.json(); allEvents = dd.events || []; }
+      } catch(e) {}
+    }
+
     const games = [];
-    (data.events || []).forEach(ev => {
+    allEvents.forEach(ev => {
       const completed = ev.status?.type?.completed === true;
       if(completed) return;
       const comp = ev.competitions?.[0];
-      const home = comp?.competitors?.find(c => c.homeAway === 'home')?.team?.displayName || '';
-      const away = comp?.competitors?.find(c => c.homeAway === 'away')?.team?.displayName || '';
-      const homeAbb = comp?.competitors?.find(c => c.homeAway === 'home')?.team?.abbreviation || '';
-      const awayAbb = comp?.competitors?.find(c => c.homeAway === 'away')?.team?.abbreviation || '';
+      const homeComp = comp?.competitors?.find(c => c.homeAway === 'home');
+      const awayComp = comp?.competitors?.find(c => c.homeAway === 'away');
+      const home = homeComp?.team?.displayName || homeComp?.team?.shortDisplayName || '';
+      const away = awayComp?.team?.displayName || awayComp?.team?.shortDisplayName || '';
+      const homeAbb = homeComp?.team?.abbreviation || '';
+      const awayAbb = awayComp?.team?.abbreviation || '';
       const statusName = ev.status?.type?.name || '';
       const isLive = statusName.includes('IN_PROGRESS') || statusName.includes('HALFTIME');
-      const gameTime = ev.date ? new Date(ev.date).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
-      if(away || home) {
-        const evTime = ev.date ? new Date(ev.date).getTime() : null;
-        const now = Date.now();
-        const within24h = evTime && evTime <= (now + 24 * 60 * 60 * 1000);
-        if(isLive || within24h) {
-          const awayName = away || awayAbb;
-          const homeName = home || homeAbb;
-          games.push({
-            full: awayName + ' @ ' + homeName + ' (' + awayName + ' is visiting, ' + homeName + ' is HOME)',
-            abbr: awayAbb + ' @ ' + homeAbb,
-            time: isLive ? 'LIVE' : gameTime,
-            live: isLive,
-            a: comp?.injuries?.length > 0
-          });
-        }
+      const gameTime = ev.date ? new Date(ev.date).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : 'TBD';
+      if((away || awayAbb) && (home || homeAbb)) {
+        const awayName = away || awayAbb;
+        const homeName = home || homeAbb;
+        games.push({
+          full: awayName + ' @ ' + homeName + ' (' + awayName + ' is visiting, ' + homeName + ' is HOME)',
+          abbr: (awayAbb||awayName) + ' @ ' + (homeAbb||homeName),
+          time: isLive ? 'LIVE' : gameTime,
+          live: isLive,
+          a: false
+        });
       }
     });
-    todayGames[key] = games;
+    // Only cache if we got real results
+    if(games.length > 0) todayGames[key] = games;
     return games;
   } catch(e) { return []; }
 }
@@ -3254,12 +3274,15 @@ function getAiCache(key) {
   try {
     const stored = sessionStorage.getItem('scout_ai2_' + key);
     if(!stored) return null;
-    return JSON.parse(stored).data;
+    const parsed = JSON.parse(stored);
+    if(!parsed?.data?.length) return null; // reject empty cached results
+    return parsed.data;
   } catch(e) { return null; }
 }
 
 function setAiCache(key, data) {
   try {
+    if(!data || !data.length) return; // never cache empty results
     sessionStorage.setItem('scout_ai2_' + key, JSON.stringify({data, ts: Date.now()}));
   } catch(e) {}
 }
@@ -3477,7 +3500,7 @@ async function generateAICards(sportName, tabName, leagueName) {
   }
 
   const gamesLine = realMatchups.length > 0
-    ? `Today's real ${sportLabel} games (from ESPN): ${realMatchups.slice(0,6).join(' | ')}`
+    ? `Today's real ${sportLabel} games (from ESPN): ${realMatchups.join(' | ')}`
     : `Upcoming ${sportLabel} events this week`;
 
   // LINES: Real odds from The Odds API first
@@ -3509,7 +3532,7 @@ ${gamesLine}
 
 STRICT RULE: You MUST ONLY generate cards about the teams/players/matchups listed above. Do not reference any other games, past games, or invented matchups. If a tab doesn't apply to any of today's games, still use those teams.
 
-Generate 3 betting intel cards for ${sportLabel.toUpperCase()} — ${tabName.toUpperCase()}.
+Generate a card for EVERY game listed above for ${sportLabel.toUpperCase()} — ${tabName.toUpperCase()}. If there are 5 games, generate 5 cards. Cover every matchup, not just the biggest ones.
 
 ${focus}
 
@@ -4411,7 +4434,7 @@ async function loadBestBets(force, targetSport, targetLeague) {
       try {
         const oddsData = await fetchLiveOdds(s, leagueAtStart);
         if(oddsData?.length > 0) {
-          const lines = oddsData.slice(0,8).map(g => {
+          const lines = oddsData.map(g => {
             const bk = g.bookmakers?.[0];
             const h2h = bk?.markets?.find(m=>m.key==='h2h');
             const sp = bk?.markets?.find(m=>m.key==='spreads');
@@ -4450,7 +4473,7 @@ async function loadBestBets(force, targetSport, targetLeague) {
       'Rules: conf=1-10. hot=true only conf 8+. type=SPREAD|MONEYLINE|TOTAL. Use real odds from your search.';
 
     const dateStr = todayStr();
-    const serverBBKey = 'bb11-'+sportAtStart+'-'+leagueAtStart+'-'+dateStr;
+    const serverBBKey = 'bb12-'+sportAtStart+'-'+leagueAtStart+'-'+dateStr;
 
     const res = await fetch('https://scout-chat.felipestinchi17.workers.dev',{
       method:'POST', headers:{'Content-Type':'application/json'},
